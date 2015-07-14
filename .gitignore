@@ -1,0 +1,10 @@
+_build/
+setup.data
+setup.log
+log
+report_dir/
+
+bisect*.out
+*.native
+*.byte
+*.docdir

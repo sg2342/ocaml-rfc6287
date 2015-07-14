@@ -12,6 +12,10 @@ Description:
    RFC6287 OCRA (OATH Challenge-Response Algorithm) library
 OCamlVersion: >= 4.02.2
 
+Flag coverage
+  Description   : Use Bisect to generate coverage data.
+  Default       : false
+
 Library "rfc6287"
  Path           : lib/
  Modules        : Rfc6287
