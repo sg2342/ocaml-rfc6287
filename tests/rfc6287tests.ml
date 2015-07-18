@@ -1,6 +1,7 @@
 (* test vectors from "Appendix C. Test Vectors" of OCRA RFC *)
 
 open OUnit2
+open Rfc6287
 
 let key k =
   let s = match k with
@@ -21,9 +22,8 @@ let suitestring ctx =
   string_of_node (List.hd ctx.path)
 
 let suite ctx =
-  match Rfc6287.t_of_string (suitestring ctx) with
-  | Some x -> x
-  | None -> raise (Failure "invalid suite string")
+  (* trade off: warning about unmatched cases, or not 100% coverage ... *)
+  let Some s = t_of_string (suitestring ctx) in s
 
 let istr l i =
   let c = char_of_int (i + (int_of_char '0')) in
@@ -35,86 +35,73 @@ let assert_cs_eq_s s cs =
 
 let known_answer =
   let o1 ctx =
-    let suite = suite ctx in
-    let key = key `K20 in
+    let suite, key = suite ctx, key `K20 in
     let l = ["237653"; "243178"; "653583"; "740991"; "608993"; "388898";
              "816933"; "224598"; "750600"; "294470"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = Rfc6287.gen ~suite ~key q in
+        let o = gen ~suite ~key q in
         assert_cs_eq_s r o) l in
 
   let o2 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
-    let p = pinhash in
-    let q = "12345678" in
+    let suite, key, p, q = suite ctx, key `K32, pinhash, "12345678" in
     let l = ["65347737"; "86775851"; "78192410"; "71565254"; "10104329";
              "65983500"; "70069104"; "91771096"; "75011558"; "08522129"] in
     List.iteri (fun i r ->
         let c = Int64.of_int i in
-        let o = Rfc6287.gen ~suite ~key ~c ~p q in
+        let o = gen ~suite ~key ~c ~p q in
         assert_cs_eq_s r o) l in
 
   let o3 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
-    let p = pinhash in
+    let suite, key, p = suite ctx, key `K32, pinhash in
     let l = ["83238735"; "01501458"; "17957585"; "86776967"; "86807031"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = Rfc6287.gen ~suite ~key ~p q in
+        let o = gen ~suite ~key ~p q in
         assert_cs_eq_s r o) l in
 
   let o4 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
+    let suite, key = suite ctx, key `K64 in
     let l = ["07016083"; "63947962"; "70123924"; "25341727"; "33203315";
              "34205738"; "44343969"; "51946085"; "20403879"; "31409299"] in
     List.iteri (fun i r ->
         let c = Int64.of_int i in
         let q = istr 8 i in
-        let o = Rfc6287.gen ~suite ~key ~c q in
+        let o = gen ~suite ~key ~c q in
         assert_cs_eq_s r o) l in
 
   let o5 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
-    let t = timestamp in
+    let suite, key, t = suite ctx, key `K64, timestamp in
     let l =["95209754"; "55907591"; "22048402"; "24218844"; "36209546"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = Rfc6287.gen ~suite ~key ~t q in
+        let o = gen ~suite ~key ~t q in
         assert_cs_eq_s r o) l in
 
   let s1 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
+    let suite, key = suite ctx, key `K32 in
     let l = [("SIG10000","53095496");
              ("SIG11000","04110475");
              ("SIG12000","31331128");
              ("SIG13000","76028668");
 	     ("SIG14000","46554205")] in
     List.iter (fun (q, r) ->
-        let o = Rfc6287.gen ~suite ~key q in
+        let o = gen ~suite ~key q in
         assert_cs_eq_s r o) l in
 
   let s2 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
-    let t = timestamp in
+    let suite, key, t = suite ctx, key `K64, timestamp in
     let l = [("SIG1000000","77537423");
              ("SIG1100000","31970405");
              ("SIG1200000","10235557");
 	     ("SIG1300000","95213541");
              ("SIG1400000","65360607")] in
     List.iter (fun (q, r) ->
-        let o = Rfc6287.gen ~suite ~key ~t q in
+        let o = gen ~suite ~key ~t q in
         assert_cs_eq_s r o) l in
 
   let m1 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
+    let suite, key = suite ctx, key `K32 in
     let l = [("CLI22220SRV11110","28247970");
              ("CLI22221SRV11111","01984843");
 	     ("CLI22222SRV11112","65387857");
@@ -126,32 +113,29 @@ let known_answer =
              ("SRV11113CLI22223","95285278");
              ("SRV11114CLI22224","28934924")] in
     List.iter (fun (q, r) ->
-        let o = Rfc6287.gen ~suite ~key q in
+        let o = gen ~suite ~key q in
         assert_cs_eq_s r o) l in
 
   let m2 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
+    let suite, key = suite ctx, key `K64 in
     let l = [("CLI22220SRV11110","79496648");
              ("CLI22221SRV11111","76831980");
              ("CLI22222SRV11112","12250499");
              ("CLI22223SRV11113","90856481");
              ("CLI22224SRV11114","12761449")] in
     List.iter (fun (q, r) ->
-        let o = Rfc6287.gen ~suite ~key q in
+        let o = gen ~suite ~key q in
         assert_cs_eq_s r o) l in
 
   let m3 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
-    let p = pinhash in
+    let suite, key, p = suite ctx, key `K64, pinhash in
     let l = [("SRV11110CLI22220","18806276");
 	     ("SRV11111CLI22221","70020315");
 	     ("SRV11112CLI22222","01600026");
 	     ("SRV11113CLI22223","18951020");
 	     ("SRV11114CLI22224","32528969")] in
     List.iter (fun (q, r) ->
-        let o = Rfc6287.gen ~suite ~key ~p q in
+        let o = gen ~suite ~key ~p q in
         assert_cs_eq_s r o) l in
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -167,51 +151,43 @@ let known_answer =
 
 let coverage =
   let invalid_suite ctx =
-    match Rfc6287.t_of_string (suitestring ctx) with
-    | None -> ()
-    | _ -> assert_failure "parsed invalid suite!" in
+    assert_equal None (t_of_string (suitestring ctx)) in
 
   let string_of_t ctx =
     let ss = suitestring ctx in
     let s = suite ctx in
-    assert_equal ss (Rfc6287.string_of_t s) in
+    assert_equal ss (string_of_t s) in
 
-  let challenge ctx =
+  let challenge0 ctx =
     let s = suite ctx in
-    let _ = Rfc6287.challenge s in
-    () in
+    let _ = challenge s in () in
 
   let gen_di_missmatch ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
-    let q = Rfc6287.challenge suite in
-    try let _ = Rfc6287.gen ~suite ~key q in () with
-    | _ -> () in
+    let suite, key = suite ctx, key `K32 in
+    let q = "6e6ec0469f5ec369a092" in
+    let _ = try gen ~suite ~key q with
+    | _ -> Cstruct.create 0 in () in
 
   let gen_session_data ctx =
-    let suite = suite ctx in
-    let key = key `K20 in
+    let suite, key = suite ctx, key `K20 in
     let q = "6e6ec0469f5ec369a092" in
     let s = Cstruct.create 235 in
     Cstruct.memset s 0xa5;
-    try let _ = Rfc6287.gen ~suite ~key ~s q in () with
-    | _ -> () in
+    let _ = gen ~suite ~key ~s q in () in
 
   let verify1 ctx =
-    let suite = suite ctx in
-    let key = key `K20 in
-    let q = Rfc6287.challenge suite in
+    let suite, key = suite ctx, key `K20 in
+    let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
-    try let _ = Rfc6287.verify ~suite ~key ~t:0x0L ~cw:1 ~tw:1 q a in () with
-    | _ -> () in
+    let _ = try verify ~suite ~key ~t:0x0L ~cw:1 ~tw:1 q a with
+    | _ -> (false, None) in () in
 
   let verify2 ctx =
     let suite, key = suite ctx, key `K20 in
-    let q = Rfc6287.challenge suite in
+    let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
-    try let _ = Rfc6287.verify ~suite ~key ~c:0x0L ~cw:1 ~tw:1 q a in () with
-    | _ -> () in
-
+    let _ = try verify ~suite ~key ~c:0x0L ~cw:1 ~tw:1 q a with
+    | _ -> (false, None) in () in
 
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
                        "OCRA-1::QA08" >:: invalid_suite;
@@ -230,9 +206,9 @@ let coverage =
                        "OCRA-1:HOTP-SHA1-a0:QN08" >:: invalid_suite;
                        "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite];
    "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t];
-   "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge;
-                     "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge;
-                     "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge];
+   "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge0;
+                     "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge0;
+                     "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge0];
    "gen" >::: ["OCRA-1:HOTP-SHA256-0:C-QH10" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA256-0:QH10-PSHA1" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen_di_missmatch;
@@ -244,48 +220,34 @@ let coverage =
 
 let verify =
   let v1 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
-    let c = 0xffffffffffffffffL in
-    let q = Rfc6287.challenge suite in
-    let a = Rfc6287.gen ~c ~suite ~key q in
-    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~suite ~key q a with
-    | (true, Some next) -> assert_equal next (Int64.add c 1L)
-    | _ -> assert_failure "verify with counter window failed" in
+    let suite, key, c = suite ctx, key `K64, 0xffffffffffffffffL in
+    let q = challenge suite in
+    let a = gen ~c ~suite ~key q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~suite ~key q a in
+    assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v2 ctx =
-    let suite = suite ctx in
-    let key = key `K64 in
-    let q = Rfc6287.challenge suite in
-    let t = timestamp in
-    let a = Rfc6287.gen ~t ~suite ~key q in
-    match Rfc6287.verify ~t:(Int64.add t 2L) ~tw:5 ~suite ~key q a with
-    | (true, None) -> ()
-    | _ -> assert_failure "verify with timestamp window failed" in
+    let suite, key, t = suite ctx, key `K64, timestamp in
+    let q = challenge suite in
+    let a = gen ~t ~suite ~key q in
+    let v = verify ~t:(Int64.add t 2L) ~tw:5 ~suite ~key q a in
+    assert_equal v (true, None) in
 
   let v3 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
-    let q = Rfc6287.challenge suite in
-    let c = 0xffffffffffffffffL in
-    let t = timestamp in
-    let a = Rfc6287.gen ~c ~t ~suite ~key q in
-    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 2L)
-            ~tw:5 ~suite ~key q a with
-    | (true, Some next) -> assert_equal next (Int64.add c 1L)
-    | _ -> assert_failure "verify with counter and timestamp window failed" in
+    let suite, key, c, t = suite ctx, key `K32, 0x0L, timestamp in
+    let q = challenge suite in
+    let a = gen ~c ~t ~suite ~key q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 2L)
+        ~tw:5 ~suite ~key q a in
+    assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v4 ctx =
-    let suite = suite ctx in
-    let key = key `K32 in
-    let q = Rfc6287.challenge suite in
-    let c = 0xffffffffffffffffL in
-    let t = timestamp in
-    let a = Rfc6287.gen ~c ~t ~suite ~key q in
-    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 6L)
-            ~tw:5 ~suite ~key q a with
-    | (false, None) -> ()
-    | _ -> assert_failure "verify with counter and timestamp window did not fail" in
+    let suite, key, c, t = suite ctx, key `K32, 0x0L, timestamp in
+    let q = challenge suite in
+    let a = gen ~c ~t ~suite ~key q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 6L)
+        ~tw:5 ~suite ~key q a in
+    assert_equal v (false, None) in
 
   ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1;
    "OCRA-1:HOTP-SHA512-10:QA64-T1M" >:: v2;

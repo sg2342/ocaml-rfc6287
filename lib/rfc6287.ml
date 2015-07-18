@@ -185,7 +185,8 @@ let format_data_input (di, ss) c q p s t =
 
   let t_off = match t with
     | None -> None
-    | Some _ -> Some ((len fss) + (len fc) + (len fq) + (len fp) + (len fs)) in
+    | Some _ ->
+      Some (List.fold_left (fun a y -> a + (len y)) 0 [fss;fc;fq;fp;fs]) in
   (Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off))
 
 
