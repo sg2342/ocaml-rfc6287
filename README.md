@@ -8,12 +8,5 @@ work in progress
 ## Notes on bisect and ounit tests
 
 ```
-make distclean
-./configure --enable-tests --enable-coverage
-make
-rm -rf bisect*.out report_dir/*
-ocaml setup.ml -test -runner sequential
-make report
+CONFIGUREFLAGS="--enable-tests --enable-coverage" make distclean cover_test
 ```
-
-point browser at `report_dir/index.html`, observe coverage for `lib/rfc6287.ml`

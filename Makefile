@@ -40,6 +40,7 @@ configure:
 
 # OASIS_STOP
 
-report:
-	mkdir -p report_dir
-	bisect-report -I _build -html report_dir bisect*.out
+cover_test: build
+	BISECT_FILE=XBsect $(SETUP) -test -runner sequential -no-output-file
+	bisect-report -I _build -summary-only -I _build -text - XBsect*.out
+	rm XBsect*.out
