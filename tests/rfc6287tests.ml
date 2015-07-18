@@ -197,6 +197,22 @@ let coverage =
     try let _ = Rfc6287.gen ~suite ~key ~s q in () with
     | _ -> () in
 
+  let verify1 ctx =
+    let suite = suite ctx in
+    let key = key `K20 in
+    let q = Rfc6287.challenge suite in
+    let a = Cstruct.of_string "does not matter" in
+    try let _ = Rfc6287.verify ~suite ~key ~t:0x0L ~cw:1 ~tw:1 q a in () with
+    | _ -> () in
+
+  let verify2 ctx =
+    let suite, key = suite ctx, key `K20 in
+    let q = Rfc6287.challenge suite in
+    let a = Cstruct.of_string "does not matter" in
+    try let _ = Rfc6287.verify ~suite ~key ~c:0x0L ~cw:1 ~tw:1 q a in () with
+    | _ -> () in
+
+
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
                        "OCRA-1::QA08" >:: invalid_suite;
                        "OCRA-1:::QA08" >:: invalid_suite;
@@ -222,7 +238,9 @@ let coverage =
                "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA1-0:QH10-S235" >:: gen_session_data;
-               "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data]]
+               "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data];
+   "verify" >::: ["OCRA-1:HOTP-SHA1-0:QH10-T1M" >:: verify1;
+                  "OCRA-1:HOTP-SHA1-0:C-QH10" >:: verify2;]]
 
 let verify =
   let v1 ctx =
@@ -233,9 +251,47 @@ let verify =
     let a = Rfc6287.gen ~c ~suite ~key q in
     match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~suite ~key q a with
     | (true, Some next) -> assert_equal next (Int64.add c 1L)
-    | _ -> assert_failure "verify with counter window failed"
-  in
-  ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1]
+    | _ -> assert_failure "verify with counter window failed" in
+
+  let v2 ctx =
+    let suite = suite ctx in
+    let key = key `K64 in
+    let q = Rfc6287.challenge suite in
+    let t = timestamp in
+    let a = Rfc6287.gen ~t ~suite ~key q in
+    match Rfc6287.verify ~t:(Int64.add t 2L) ~tw:5 ~suite ~key q a with
+    | (true, None) -> ()
+    | _ -> assert_failure "verify with timestamp window failed" in
+
+  let v3 ctx =
+    let suite = suite ctx in
+    let key = key `K32 in
+    let q = Rfc6287.challenge suite in
+    let c = 0xffffffffffffffffL in
+    let t = timestamp in
+    let a = Rfc6287.gen ~c ~t ~suite ~key q in
+    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 2L)
+            ~tw:5 ~suite ~key q a with
+    | (true, Some next) -> assert_equal next (Int64.add c 1L)
+    | _ -> assert_failure "verify with counter and timestamp window failed" in
+
+  let v4 ctx =
+    let suite = suite ctx in
+    let key = key `K32 in
+    let q = Rfc6287.challenge suite in
+    let c = 0xffffffffffffffffL in
+    let t = timestamp in
+    let a = Rfc6287.gen ~c ~t ~suite ~key q in
+    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 6L)
+            ~tw:5 ~suite ~key q a with
+    | (false, None) -> ()
+    | _ -> assert_failure "verify with counter and timestamp window did not fail" in
+
+  ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1;
+   "OCRA-1:HOTP-SHA512-10:QA64-T1M" >:: v2;
+   "OCRA-1:HOTP-SHA256-0:C-QN15-T1M" >:: v3;
+   "OCRA-1:HOTP-SHA256-0:C-QN15-T1M" >:: v4]
+
 
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;

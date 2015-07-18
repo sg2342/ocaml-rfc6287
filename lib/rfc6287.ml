@@ -77,7 +77,7 @@ let t_of_string suitestring =
         match num (to_list t) 0 10 with
         | 0 -> None | x when x > 3 -> Some x | _ -> die() in
       { alg = (dgst a) ; trunc = trunc }
-    | _ -> raise ParseError in
+    | _ -> die() in
 
   try
     let cf_s, di_s = match split suitestring ~on:':' with
@@ -119,6 +119,7 @@ let crypto_function cf key buf =
       | n when n < x -> make (x - n) '0' ^ s0
       | _ -> s0 in
     Cstruct.of_string s1
+
 
 let format_data_input (di, ss) c q p s t =
   let open Cstruct in
@@ -178,29 +179,50 @@ let format_data_input (di, ss) c q p s t =
     | (Some _, Some i) -> cs_64 i
     | _ -> failwith "data input/suite string missmatch (T)" in
 
-  Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft]
+  let c_off = match c with
+    | None -> None
+    | Some _ -> Some (len fss) in
+
+  let t_off = match t with
+    | None -> None
+    | Some _ -> Some ((len fss) + (len fc) + (len fq) + (len fp) + (len fs)) in
+  (Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off))
 
 
 let gen ?c ?p ?s ?t ~suite ~key q =
-  let buf = format_data_input suite.di c q p s t in
+  let buf = fst (format_data_input suite.di c q p s t) in
   crypto_function suite.cf key buf
 
 
-let verify ?c ?p ?s ?t ?cw ~suite ~key q a =
-  let buf = format_data_input suite.di c q p s t in
-  match (c, cw) with
-  | (_, None) ->
-    ((crypto_function suite.cf key buf) = a, None)
-  | (Some c1, Some cw1) when cw1 > 0 ->
-    let ce = Int64.add c1 (Int64.of_int cw1) in
-    let c_off = (String.length (snd suite.di)) + 1 in
-    let rec loop next =
-      match (crypto_function suite.cf key buf) = a with
-      | true -> (true, Some next)
-      | false when next = ce -> (false, None)
-      | false ->
-        let _ = Cstruct.BE.set_uint64 buf c_off next in
-        loop (Int64.add next 0x01L)
-    in
-    loop (Int64.add c1 0x01L)
-  | _ -> failwith "invalid counter window/no counter in suite"
+let verify ?c ?p ?s ?t ?cw ?tw ~suite ~key q a =
+  let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
+  let verify_c buf =
+    match (c_off, c, cw) with
+    | (_, _, None) ->
+      ((crypto_function suite.cf key buf) = a, None)
+    | (Some c_off, Some c, Some cw1) when cw1 > 0 ->
+      let ce = Int64.add c (Int64.of_int cw1) in
+      let rec loop next =
+        match (crypto_function suite.cf key buf) = a with
+        | true -> (true, Some next)
+        | false when next = ce -> (false, None)
+        | false ->
+          Cstruct.BE.set_uint64 buf c_off next;
+          loop (Int64.add next 0x01L) in
+      loop (Int64.add c 0x01L)
+    | _ -> failwith "invalid counter window/no counter in suite" in
+  match (t_off, tw) with
+  | (_, None) -> verify_c buf0
+  | (Some t_off, Some tw1) when tw1 > 0 ->
+    let t_start, t_stop =
+      let t = Cstruct.BE.get_uint64 buf0 t_off in
+      let w = Int64.of_int tw1 in
+      Int64.sub t w, Int64.add t w in
+    let rec loop t_next =
+      Cstruct.BE.set_uint64 buf0 t_off t_next;
+      match verify_c buf0 with
+      | (true, next_c) -> (true, next_c)
+      | (false, None) when t_next = t_stop -> (false, None)
+      | _ -> loop (Int64.add t_next 1L) in
+    loop t_start
+  | _ -> failwith "invalid timestamp window/no timestamp in suite"
