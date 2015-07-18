@@ -170,6 +170,11 @@ let invalid_suite ctx =
   | None -> ()
   | _ -> assert_failure "parsed invalid suite!"
 
+let string_of_t ctx =
+  let ss = suitestring ctx in
+  let s = suite ctx in
+  assert_equal ss (Rfc6287.string_of_t s)
+
 let known_answer =
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -198,8 +203,9 @@ let coverage =
                         "OCRA-1:HOTP-SHA1-1:QA08" >:: invalid_suite;
                         "OCRA-1:HOTP-SHA-0:QN08" >:: invalid_suite;
                         "OCRA-1:HOTP-SHA1-a0:QN08" >:: invalid_suite;
-                        "OCRA-1:HTOP-SHA1-99:QA08" >:: invalid_suite;
-                        "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite]]
+                        "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite];
+    "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t]]
+
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
                "coverage" >::: coverage]
