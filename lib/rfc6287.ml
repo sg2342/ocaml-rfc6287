@@ -120,8 +120,6 @@ let crypto_function cf key buf =
       | _ -> s0 in
     Cstruct.of_string s1
 
-
-exception DataInputError
 let format_data_input (di, ss) c q p s t =
   let open Cstruct in
   let open Nocrypto in
@@ -136,7 +134,7 @@ let format_data_input (di, ss) c q p s t =
   let fc = match (di.c, c) with
     | (false, None) -> create 0
     | (true, Some i) -> cs_64 i
-    | _ -> raise DataInputError in
+    | _ -> failwith "data input/suite string missmatch (C)" in
 
   (* Q, mandatory *)
   let fq =
@@ -166,19 +164,19 @@ let format_data_input (di, ss) c q p s t =
   let fp = match (di.p, p) with
     | (None, None) -> create 0
     | (Some dgst, Some y) when Hash.digest_size dgst = len y -> y
-    | _ -> raise DataInputError in
+    | _ -> failwith "data input/suite string missmatch (P)" in
 
   (* S, optional *)
   let fs = match (di.s, s) with
     | (None, None) -> create 0
     | (Some n, Some y) when len y = n -> y
-    | _ -> raise DataInputError in
+    | _ -> failwith "data input/suite string missmatch (S)" in
 
   (* T, optional *)
   let ft = match (di.t, t) with
     | (None, None) -> create 0
     | (Some _, Some i) -> cs_64 i
-    | _ -> raise DataInputError in
+    | _ -> failwith "data input/suite string missmatch (T)" in
 
   Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft]
 

@@ -9,5 +9,4 @@ val string_of_t : t -> string
 
 val challenge : t -> string
 
-exception DataInputError
 val gen: ?c:int64 -> ?p:Cstruct.t -> ?s:Cstruct.t -> ?t:int64 -> suite:t -> key:Cstruct.t -> string -> Cstruct.t
