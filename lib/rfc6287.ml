@@ -79,9 +79,11 @@ let t_of_string suitestring =
       { alg = (dgst a) ; trunc = trunc }
     | _ -> raise ParseError in
 
-  let cf_s, di_s = match split suitestring ~on:':' with
-    | ["OCRA-1"; c; d] ->  c, d | _ -> die() in
-  { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
+  try
+    let cf_s, di_s = match split suitestring ~on:':' with
+      | ["OCRA-1"; c; d] ->  c, d | _ -> die() in
+    Some { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
+  with ParseError -> None
 
 
 let string_of_t { cf = _ ; di = (_, s) } = s

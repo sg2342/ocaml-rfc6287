@@ -3,8 +3,7 @@
 (** The abstract OCRA (suite) type *)
 type t
 
-exception ParseError
-val t_of_string : string -> t
+val t_of_string : string -> t option
 
 val string_of_t : t -> string
 

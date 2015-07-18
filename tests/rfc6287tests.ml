@@ -18,9 +18,14 @@ let pinhash =
 let timestamp =
   Some 0x132d0b6L
 
-let suite ctx =
+let suitestring ctx =
   let open OUnitTest in
-  Rfc6287.t_of_string (string_of_node (List.hd ctx.path))
+  string_of_node (List.hd ctx.path)
+
+let suite ctx =
+  match Rfc6287.t_of_string (suitestring ctx) with
+  | Some x -> x
+  | None -> raise (Failure "invalid suite string")
 
 let istr l i =
   let c = char_of_int (i + (int_of_char '0')) in
@@ -160,16 +165,42 @@ let m3 ctx =
       let x = Cstruct.to_string(ocra ~q:q) in
       assert_equal r x) l
 
+let invalid_suite ctx =
+  match Rfc6287.t_of_string (suitestring ctx) with
+  | None -> ()
+  | _ -> assert_failure "parsed invalid suite!"
+
+let known_answer =
+  ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
+                   "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
+                   "OCRA-1:HOTP-SHA256-8:QN08-PSHA1" >:: o3;
+                   "OCRA-1:HOTP-SHA512-8:C-QN08" >:: o4;
+                   "OCRA-1:HOTP-SHA512-8:QN08-T1M" >:: o5;];
+   "signature" >::: ["OCRA-1:HOTP-SHA256-8:QA08" >::s1;
+                     "OCRA-1:HOTP-SHA512-8:QA10-T1M" >:: s2];
+   "mutual" >::: ["OCRA-1:HOTP-SHA256-8:QA08" >:: m1;
+                  "OCRA-1:HOTP-SHA512-8:QA08" >:: m2;
+                  "OCRA-1:HOTP-SHA512-8:QA08-PSHA1" >:: m3];
+  ]
+let coverage =
+  [ "t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
+                        "OCRA-1::QA08" >:: invalid_suite;
+                        "OCRA-1:::QA08" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QN08-T01X" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QN08-T91S" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QN08-T91H" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QN08-T" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QH08-S028---" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:QX08" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:C-" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:C" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-0:" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-1:QA08" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA-0:QN08" >:: invalid_suite;
+                        "OCRA-1:HOTP-SHA1-a0:QN08" >:: invalid_suite;
+                        "OCRA-1:HTOP-SHA1-99:QA08" >:: invalid_suite;
+                        "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite]]
 let suite =
-  "All" >::: ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
-                              "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
-                              "OCRA-1:HOTP-SHA256-8:QN08-PSHA1" >:: o3;
-                              "OCRA-1:HOTP-SHA512-8:C-QN08" >:: o4;
-                              "OCRA-1:HOTP-SHA512-8:QN08-T1M" >:: o5;];
-              "signature" >::: ["OCRA-1:HOTP-SHA256-8:QA08" >::s1;
-                                "OCRA-1:HOTP-SHA512-8:QA10-T1M" >:: s2];
-              "mutual" >::: ["OCRA-1:HOTP-SHA256-8:QA08" >:: m1;
-                             "OCRA-1:HOTP-SHA512-8:QA08" >:: m2;
-                             "OCRA-1:HOTP-SHA512-8:QA08-PSHA1" >:: m3];
-             ]
+  "All" >::: [ "known_answer" >::: known_answer;
+               "coverage" >::: coverage]
 
