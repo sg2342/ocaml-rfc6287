@@ -175,6 +175,11 @@ let string_of_t ctx =
   let s = suite ctx in
   assert_equal ss (Rfc6287.string_of_t s)
 
+let challenge ctx =
+  let s = suite ctx in
+  let _ = Rfc6287.challenge s in
+  ()
+
 let known_answer =
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -204,7 +209,10 @@ let coverage =
                         "OCRA-1:HOTP-SHA-0:QN08" >:: invalid_suite;
                         "OCRA-1:HOTP-SHA1-a0:QN08" >:: invalid_suite;
                         "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite];
-    "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t]]
+    "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t];
+    "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge;
+                      "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge;
+                      "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge]]
 
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
