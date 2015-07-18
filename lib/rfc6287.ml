@@ -104,7 +104,7 @@ let challenge { di = ({ q = (qf, ql); _ }, _); _ } =
 
 
 let crypto_function cf key buf =
-  let hmac = Nocrypto.Hash.mac cf.alg ~key:key buf in
+  let hmac = Nocrypto.Hash.mac cf.alg ~key buf in
   match cf.trunc with
   | None -> hmac
   | Some x ->
