@@ -167,6 +167,28 @@ let challenge ctx =
   let _ = Rfc6287.challenge s in
   ()
 
+let c_gen_di_missmatch ctx =
+  let suite = suite ctx in
+  let key = key `K32 in
+  let q = Rfc6287.challenge suite in
+  try let _ = Rfc6287.gen ~suite ~key q in () with
+  | _ -> ()
+
+let c_gen_session_data ctx =
+  let suite = suite ctx in
+  let key = key `K20 in
+  let q = Rfc6287.challenge suite in
+  let s = Cstruct.create 235 in
+  try let _ = Rfc6287.gen ~suite ~key ~s q in () with
+  | _ -> ()
+
+let c_gen_cf_fill ctx =
+  let suite = suite ctx in
+  let key = key `K20 in
+  let q = "00000000" in
+  try let _ = Rfc6287.gen ~suite ~key q in () with
+  | _ -> ()
+
 let known_answer =
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -198,7 +220,14 @@ let coverage =
     "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t];
     "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge;
                       "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge;
-                      "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge]]
+                      "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge];
+    "gen" >::: ["OCRA-1:HOTP-SHA256-0:C-QH10" >:: c_gen_di_missmatch;
+                "OCRA-1:HOTP-SHA256-0:QH10-PSHA1" >:: c_gen_di_missmatch;
+                "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: c_gen_di_missmatch;
+                "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: c_gen_di_missmatch;
+                "OCRA-1:HOTP-SHA1-0:QH10-S235" >:: c_gen_session_data;
+                "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: c_gen_session_data;
+                "OCRA-1:HOTP-SHA1-10:QN08" >:: c_gen_cf_fill]]
 
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
