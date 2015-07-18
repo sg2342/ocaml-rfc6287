@@ -183,7 +183,6 @@ let format_data_input (di, ss) c q p s t =
   Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft]
 
 
-let gen ?c:(c=None) ?p:(p=None) ?s:(s=None) ?t:(t=None)
-    ~suite:suite ~key:k ~q:q =
+let gen ?c ?p ?s ?t ~suite ~key q =
   let buf = format_data_input suite.di c q p s t in
-  crypto_function suite.cf k buf
+  crypto_function suite.cf key buf
