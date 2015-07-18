@@ -184,3 +184,24 @@ let format_data_input (di, ss) c q p s t =
 let gen ?c ?p ?s ?t ~suite ~key q =
   let buf = format_data_input suite.di c q p s t in
   crypto_function suite.cf key buf
+
+
+let verify ?c ?p ?s ?t ?cw ~suite ~key q a =
+  match (c, cw) with
+  | (_, None) ->
+    let buf = format_data_input suite.di c q p s t in
+    ((crypto_function suite.cf key buf) = a, None)
+  | (Some c1, Some cw1) when cw1 > 0 ->
+    let ce = Int64.add c1 (Int64.of_int cw1) in
+    let buf = format_data_input suite.di c q p s t in
+    let c_off = (String.length (snd suite.di)) + 1 in
+    let rec loop next =
+      match (crypto_function suite.cf key buf) = a with
+      | true -> (true, Some next)
+      | false when next = ce -> (false, None)
+      | false ->
+        let _ = Cstruct.BE.set_uint64 buf c_off next in
+        loop (Int64.add next 0x01L)
+    in
+    loop (Int64.add c1 0x01L)
+  | _ -> failwith "invalid counter window/no counter in suite"

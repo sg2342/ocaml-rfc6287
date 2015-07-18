@@ -224,7 +224,21 @@ let coverage =
                "OCRA-1:HOTP-SHA1-0:QH10-S235" >:: gen_session_data;
                "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data]]
 
+let verify =
+  let v1 ctx =
+    let suite = suite ctx in
+    let key = key `K64 in
+    let c = 0xffffffffffffffffL in
+    let q = Rfc6287.challenge suite in
+    let a = Rfc6287.gen ~c ~suite ~key q in
+    match Rfc6287.verify ~c:(Int64.sub c 23L) ~cw:42 ~suite ~key q a with
+    | (true, Some next) -> assert_equal next (Int64.add c 1L)
+    | _ -> assert_failure "verify with counter window failed"
+  in
+  ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1]
+
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
+               "verify" >::: verify;
                "coverage" >::: coverage]
 
