@@ -191,16 +191,10 @@ let coverage =
   let gen_session_data ctx =
     let suite = suite ctx in
     let key = key `K20 in
-    let q = Rfc6287.challenge suite in
+    let q = "6e6ec0469f5ec369a092" in
     let s = Cstruct.create 235 in
+    Cstruct.memset s 0xa5;
     try let _ = Rfc6287.gen ~suite ~key ~s q in () with
-    | _ -> () in
-
-  let gen_cf_fill ctx =
-    let suite = suite ctx in
-    let key = key `K20 in
-    let q = "00000000" in
-    try let _ = Rfc6287.gen ~suite ~key q in () with
     | _ -> () in
 
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
@@ -228,8 +222,7 @@ let coverage =
                "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: gen_di_missmatch;
                "OCRA-1:HOTP-SHA1-0:QH10-S235" >:: gen_session_data;
-               "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data;
-               "OCRA-1:HOTP-SHA1-10:QN08" >:: gen_cf_fill]]
+               "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data]]
 
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
