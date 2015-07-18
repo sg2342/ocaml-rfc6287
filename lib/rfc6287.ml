@@ -187,13 +187,12 @@ let gen ?c ?p ?s ?t ~suite ~key q =
 
 
 let verify ?c ?p ?s ?t ?cw ~suite ~key q a =
+  let buf = format_data_input suite.di c q p s t in
   match (c, cw) with
   | (_, None) ->
-    let buf = format_data_input suite.di c q p s t in
     ((crypto_function suite.cf key buf) = a, None)
   | (Some c1, Some cw1) when cw1 > 0 ->
     let ce = Int64.add c1 (Int64.of_int cw1) in
-    let buf = format_data_input suite.di c q p s t in
     let c_off = (String.length (snd suite.di)) + 1 in
     let rec loop next =
       match (crypto_function suite.cf key buf) = a with
