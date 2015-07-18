@@ -1,0 +1,11 @@
+S lib/
+S tests/
+
+B _build/lib
+B _build/tests
+
+PKG stringext
+PKG cstruct
+PKG nocrypto
+PKG hex
+PKG oUnit
