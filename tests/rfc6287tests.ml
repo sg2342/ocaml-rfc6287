@@ -190,8 +190,7 @@ let known_answer =
                      "OCRA-1:HOTP-SHA512-8:QA10-T1M" >:: s2];
    "mutual" >::: ["OCRA-1:HOTP-SHA256-8:QA08" >:: m1;
                   "OCRA-1:HOTP-SHA512-8:QA08" >:: m2;
-                  "OCRA-1:HOTP-SHA512-8:QA08-PSHA1" >:: m3];
-  ]
+                  "OCRA-1:HOTP-SHA512-8:QA08-PSHA1" >:: m3]]
 let coverage =
   [ "t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
                         "OCRA-1::QA08" >:: invalid_suite;
