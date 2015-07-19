@@ -9,6 +9,8 @@ val string_of_t : t -> string
 
 val challenge : t -> string
 
-val gen: ?c:int64 -> ?p:Cstruct.t -> ?s:Cstruct.t -> ?t:int64 -> suite:t -> key:Cstruct.t -> string -> Cstruct.t
+type timestamp = [`Now | `Int64 of int64 ]
 
-val verify: ?c:int64 -> ?p:Cstruct.t -> ?s:Cstruct.t -> ?t:int64 -> ?cw:int -> ?tw:int -> suite:t -> key:Cstruct.t -> string -> Cstruct.t -> bool * int64 option
+val gen: ?c:int64 -> ?p:Cstruct.t -> ?s:Cstruct.t -> ?t:timestamp -> suite:t -> key:Cstruct.t -> string -> Cstruct.t
+
+val verify: ?c:int64 -> ?p:Cstruct.t -> ?s:Cstruct.t -> ?t:timestamp -> ?cw:int -> ?tw:int -> suite:t -> key:Cstruct.t -> string -> Cstruct.t -> bool * int64 option

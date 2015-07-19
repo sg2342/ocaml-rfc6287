@@ -8,10 +8,12 @@ type di = { c : bool ;
             q : ([`A | `N | `H] * int) ;
             p : dgst option ;
             s : int option ;
-            t : ([`H | `M | `S] * int) option }
+            t : int option }
 
 type t = { cf : cf ;
            di : di * string }
+
+type timestamp = [`Now | `Int64 of int64]
 
 exception ParseError
 let t_of_string suitestring =
@@ -36,14 +38,14 @@ let t_of_string suitestring =
 
   let datainput s =
     let hms = function
-      | 'H' -> (`H, 48) | 'M' -> (`M, 59) | 'S' -> (`S, 59) | _ -> die() in
+      | 'H' -> (3600, 48) | 'M' -> (60, 59) | 'S' -> (1, 59) | _ -> die() in
     let timestep = function
       | (y, []) -> (y, None)
       | (y, h::[]) -> (y, (match to_list h with
           | ['T';x1;s] -> let hms, _ = hms s in
-            Some (hms, num [x1] 1 9)
+            Some (hms * (num [x1] 1 9))
           | ['T';x1;x2;s] -> let hms, max = hms s in
-            Some (hms, num [x1;x2] 1 max)
+            Some (hms * (num [x1;x2] 1 max))
           | _ -> die()))
       | _ -> die() in
     let session = function
@@ -176,7 +178,10 @@ let format_data_input (di, ss) c q p s t =
   (* T, optional *)
   let ft = match (di.t, t) with
     | (None, None) -> create 0
-    | (Some _, Some i) -> cs_64 i
+    | (Some _, Some `Int64 i) -> cs_64 i
+    | (Some y, Some `Now) ->
+      let open Int64 in
+      cs_64 (div (of_float (Unix.time())) (of_int y))
     | _ -> failwith "data input/suite string missmatch (T)" in
 
   let c_off = match c with

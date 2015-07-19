@@ -15,7 +15,7 @@ let key k =
 
 let pinhash = Nocrypto.Hash.SHA1.digest (Cstruct.of_string "1234")
 
-let timestamp = 0x132d0b6L
+let timestamp = `Int64 0x132d0b6L
 
 let suitestring ctx =
   let open OUnitTest in
@@ -166,7 +166,7 @@ let coverage =
     let suite, key = suite ctx, key `K32 in
     let q = "6e6ec0469f5ec369a092" in
     let _ = try gen ~suite ~key q with
-    | _ -> Cstruct.create 0 in () in
+      | _ -> Cstruct.create 0 in () in
 
   let gen_session_data ctx =
     let suite, key = suite ctx, key `K20 in
@@ -179,15 +179,15 @@ let coverage =
     let suite, key = suite ctx, key `K20 in
     let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
-    let _ = try verify ~suite ~key ~t:0x0L ~cw:1 ~tw:1 q a with
-    | _ -> (false, None) in () in
+    let _ = try verify ~suite ~key ~t:(`Int64 0x0L) ~cw:1 ~tw:1 q a with
+      | _ -> (false, None) in () in
 
   let verify2 ctx =
     let suite, key = suite ctx, key `K20 in
     let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
     let _ = try verify ~suite ~key ~c:0x0L ~cw:1 ~tw:1 q a with
-    | _ -> (false, None) in () in
+      | _ -> (false, None) in () in
 
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
                        "OCRA-1::QA08" >:: invalid_suite;
@@ -227,25 +227,24 @@ let verify =
     assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v2 ctx =
-    let suite, key, t = suite ctx, key `K64, timestamp in
+    let suite, key, `Int64 t = suite ctx, key `K64, timestamp in
     let q = challenge suite in
-    let a = gen ~t ~suite ~key q in
-    let v = verify ~t:(Int64.add t 2L) ~tw:5 ~suite ~key q a in
+    let a = gen ~t:(`Int64 t) ~suite ~key q in
+    let v = verify ~t:(`Int64 (Int64.add t 2L)) ~tw:5 ~suite ~key q a in
     assert_equal v (true, None) in
 
   let v3 ctx =
-    let suite, key, c, t = suite ctx, key `K32, 0x0L, timestamp in
+    let suite, key, c, t = suite ctx, key `K32, 0x0L, `Now in
     let q = challenge suite in
     let a = gen ~c ~t ~suite ~key q in
-    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 2L)
-        ~tw:5 ~suite ~key q a in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 ~suite ~key q a in
     assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v4 ctx =
-    let suite, key, c, t = suite ctx, key `K32, 0x0L, timestamp in
+    let suite, key, c, `Int64 t = suite ctx, key `K32, 0x0L, timestamp in
     let q = challenge suite in
-    let a = gen ~c ~t ~suite ~key q in
-    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(Int64.add t 6L)
+    let a = gen ~c ~t:(`Int64 t) ~suite ~key q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(`Int64 (Int64.add t 6L))
         ~tw:5 ~suite ~key q a in
     assert_equal v (false, None) in
 
