@@ -40,7 +40,7 @@ let known_answer =
              "816933"; "224598"; "750600"; "294470"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen ~suite ~key q in
+        let o = gen suite ~key ~q in
         assert_cs_eq_s r o) l in
 
   let o2 ctx =
@@ -49,7 +49,7 @@ let known_answer =
              "65983500"; "70069104"; "91771096"; "75011558"; "08522129"] in
     List.iteri (fun i r ->
         let c = Int64.of_int i in
-        let o = gen ~suite ~key ~c ~p q in
+        let o = gen suite ~key ~c ~p ~q in
         assert_cs_eq_s r o) l in
 
   let o3 ctx =
@@ -57,7 +57,7 @@ let known_answer =
     let l = ["83238735"; "01501458"; "17957585"; "86776967"; "86807031"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen ~suite ~key ~p q in
+        let o = gen suite ~key ~p ~q in
         assert_cs_eq_s r o) l in
 
   let o4 ctx =
@@ -67,7 +67,7 @@ let known_answer =
     List.iteri (fun i r ->
         let c = Int64.of_int i in
         let q = istr 8 i in
-        let o = gen ~suite ~key ~c q in
+        let o = gen suite ~key ~c ~q in
         assert_cs_eq_s r o) l in
 
   let o5 ctx =
@@ -75,7 +75,7 @@ let known_answer =
     let l =["95209754"; "55907591"; "22048402"; "24218844"; "36209546"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen ~suite ~key ~t q in
+        let o = gen suite ~key ~t ~q in
         assert_cs_eq_s r o) l in
 
   let s1 ctx =
@@ -86,7 +86,7 @@ let known_answer =
              ("SIG13000","76028668");
 	     ("SIG14000","46554205")] in
     List.iter (fun (q, r) ->
-        let o = gen ~suite ~key q in
+        let o = gen suite ~key ~q in
         assert_cs_eq_s r o) l in
 
   let s2 ctx =
@@ -97,7 +97,7 @@ let known_answer =
 	     ("SIG1300000","95213541");
              ("SIG1400000","65360607")] in
     List.iter (fun (q, r) ->
-        let o = gen ~suite ~key ~t q in
+        let o = gen suite ~key ~t ~q in
         assert_cs_eq_s r o) l in
 
   let m1 ctx =
@@ -113,7 +113,7 @@ let known_answer =
              ("SRV11113CLI22223","95285278");
              ("SRV11114CLI22224","28934924")] in
     List.iter (fun (q, r) ->
-        let o = gen ~suite ~key q in
+        let o = gen suite ~key ~q in
         assert_cs_eq_s r o) l in
 
   let m2 ctx =
@@ -124,7 +124,7 @@ let known_answer =
              ("CLI22223SRV11113","90856481");
              ("CLI22224SRV11114","12761449")] in
     List.iter (fun (q, r) ->
-        let o = gen ~suite ~key q in
+        let o = gen suite ~key ~q in
         assert_cs_eq_s r o) l in
 
   let m3 ctx =
@@ -135,7 +135,7 @@ let known_answer =
 	     ("SRV11113CLI22223","18951020");
 	     ("SRV11114CLI22224","32528969")] in
     List.iter (fun (q, r) ->
-        let o = gen ~suite ~key ~p q in
+        let o = gen suite ~key ~p ~q in
         assert_cs_eq_s r o) l in
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -165,7 +165,7 @@ let coverage =
   let gen_di_missmatch ctx =
     let suite, key = suite ctx, key `K32 in
     let q = "6e6ec0469f5ec369a092" in
-    let _ = try gen ~suite ~key q with
+    let _ = try gen suite ~key ~q with
       | _ -> Cstruct.create 0 in () in
 
   let gen_session_data ctx =
@@ -173,20 +173,20 @@ let coverage =
     let q = "6e6ec0469f5ec369a092" in
     let s = Cstruct.create 235 in
     Cstruct.memset s 0xa5;
-    let _ = gen ~suite ~key ~s q in () in
+    let _ = gen suite ~key ~s ~q in () in
 
   let verify1 ctx =
     let suite, key = suite ctx, key `K20 in
     let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
-    let _ = try verify ~suite ~key ~t:(`Int64 0x0L) ~cw:1 ~tw:1 q a with
+    let _ = try verify suite ~key ~t:(`Int64 0x0L) ~cw:1 ~tw:1 ~q ~a with
       | _ -> (false, None) in () in
 
   let verify2 ctx =
     let suite, key = suite ctx, key `K20 in
     let q = challenge suite in
     let a = Cstruct.of_string "does not matter" in
-    let _ = try verify ~suite ~key ~c:0x0L ~cw:1 ~tw:1 q a with
+    let _ = try verify suite ~key ~c:0x0L ~cw:1 ~tw:1 ~q ~a with
       | _ -> (false, None) in () in
 
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
@@ -222,30 +222,30 @@ let verify =
   let v1 ctx =
     let suite, key, c = suite ctx, key `K64, 0xffffffffffffffffL in
     let q = challenge suite in
-    let a = gen ~c ~suite ~key q in
-    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~suite ~key q a in
+    let a = gen ~c suite ~key ~q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 suite ~key ~q ~a in
     assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v2 ctx =
     let suite, key, `Int64 t = suite ctx, key `K64, timestamp in
     let q = challenge suite in
-    let a = gen ~t:(`Int64 t) ~suite ~key q in
-    let v = verify ~t:(`Int64 (Int64.add t 2L)) ~tw:5 ~suite ~key q a in
+    let a = gen ~t:(`Int64 t) suite ~key ~q in
+    let v = verify ~t:(`Int64 (Int64.add t 2L)) ~tw:5 suite ~key ~q ~a in
     assert_equal v (true, None) in
 
   let v3 ctx =
     let suite, key, c, t = suite ctx, key `K32, 0x0L, `Now in
     let q = challenge suite in
-    let a = gen ~c ~t ~suite ~key q in
-    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 ~suite ~key q a in
+    let a = gen ~c ~t suite ~key ~q in
+    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite ~key ~q ~a in
     assert_equal v (true, Some (Int64.add c 1L)) in
 
   let v4 ctx =
     let suite, key, c, `Int64 t = suite ctx, key `K32, 0x0L, timestamp in
     let q = challenge suite in
-    let a = gen ~c ~t:(`Int64 t) ~suite ~key q in
+    let a = gen ~c ~t:(`Int64 t) suite ~key ~q in
     let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(`Int64 (Int64.add t 6L))
-        ~tw:5 ~suite ~key q a in
+        ~tw:5 suite ~key ~q ~a in
     assert_equal v (false, None) in
 
   ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1;

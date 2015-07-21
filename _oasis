@@ -40,3 +40,12 @@ Executable "test_runner"
 Test it
  Command        : $test_runner
  Run           $: flag(tests)
+
+Document api
+  Title: Documentation and API reference
+  Abstract: RFC6287 OCRA (OATH Challenge-Response Algorithm).
+  Type: ocamlbuild (0.3)
+  BuildTools+: ocamldoc
+  XOcamlbuildPath: doc
+  XOcamlbuildModules: lib/Rfc6287
+  Install: false
