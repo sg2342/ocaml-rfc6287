@@ -195,12 +195,12 @@ let format_data_input (di, ss) c q p s t =
   (Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off))
 
 
-let gen ?c ?p ?s ?t ~suite ~key q =
+let gen ?c ?p ?s ?t ~key ~q suite =
   let buf = fst (format_data_input suite.di c q p s t) in
   crypto_function suite.cf key buf
 
 
-let verify ?c ?p ?s ?t ?cw ?tw ~suite ~key q a =
+let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
   let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
   let verify_c buf =
     match (c_off, c, cw) with
