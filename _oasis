@@ -10,7 +10,7 @@ Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
 Description:
    RFC6287 OCRA (OATH Challenge-Response Algorithm) library
-OCamlVersion: >= 4.02.2
+OCamlVersion: >= 4.02.1
 
 Flag coverage
   Description   : Use Bisect to generate coverage data.
