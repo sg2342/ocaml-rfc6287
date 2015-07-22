@@ -8,4 +8,5 @@ PKG stringext
 PKG cstruct
 PKG nocrypto
 PKG hex
+PKG rresult
 PKG oUnit

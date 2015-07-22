@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d4e13a6bb5e6bbd6e5375a35714945f3)
+# DO NOT EDIT (digest: c8dc70fdefee769c7a579566e0af5dc4)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,6 +21,7 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: package(cstruct)
 <lib/*.ml{,i,y}>: package(hex)
 <lib/*.ml{,i,y}>: package(nocrypto)
+<lib/*.ml{,i,y}>: package(rresult)
 <lib/*.ml{,i,y}>: package(stringext)
 # Library testlib
 "tests/testlib.cmxs": use_testlib
@@ -30,6 +31,7 @@ true: annot, bin_annot
 "tests/testrunner.native": package(nocrypto)
 "tests/testrunner.native": package(nocrypto.unix)
 "tests/testrunner.native": package(oUnit)
+"tests/testrunner.native": package(rresult)
 "tests/testrunner.native": package(stringext)
 "tests/testrunner.native": use_rfc6287
 "tests/testrunner.native": use_testlib
@@ -38,6 +40,7 @@ true: annot, bin_annot
 <tests/*.ml{,i,y}>: package(nocrypto)
 <tests/*.ml{,i,y}>: package(nocrypto.unix)
 <tests/*.ml{,i,y}>: package(oUnit)
+<tests/*.ml{,i,y}>: package(rresult)
 <tests/*.ml{,i,y}>: package(stringext)
 <tests/*.ml{,i,y}>: use_rfc6287
 <tests/*.ml{,i,y}>: use_testlib

@@ -19,7 +19,7 @@ Flag coverage
 Library "rfc6287"
  Path           : lib/
  Modules        : Rfc6287
- BuildDepends   : cstruct, nocrypto, stringext, hex
+ BuildDepends   : cstruct, nocrypto, stringext, hex, rresult
  ByteOpt        : -w A-4-33-40-41-42-43-34-44
 
 Library "testlib"
