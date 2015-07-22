@@ -2,6 +2,7 @@
 
 open OUnit2
 open Rfc6287
+open Rresult
 
 let key k =
   let s = match k with
@@ -22,8 +23,7 @@ let suitestring ctx =
   string_of_node (List.hd ctx.path)
 
 let suite ctx =
-  (* trade off: warning about unmatched cases, or not 100% coverage ... *)
-  let Some s = t_of_string (suitestring ctx) in s
+  R.get_ok (t_of_string (suitestring ctx))
 
 let istr l i =
   let c = char_of_int (i + (int_of_char '0')) in
@@ -40,7 +40,7 @@ let known_answer =
              "816933"; "224598"; "750600"; "294470"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen suite ~key ~q in
+        let o = R.get_ok (gen suite ~key ~q) in
         assert_cs_eq_s r o) l in
 
   let o2 ctx =
@@ -49,7 +49,7 @@ let known_answer =
              "65983500"; "70069104"; "91771096"; "75011558"; "08522129"] in
     List.iteri (fun i r ->
         let c = Int64.of_int i in
-        let o = gen suite ~key ~c ~p ~q in
+        let o = R.get_ok (gen suite ~key ~c ~p ~q) in
         assert_cs_eq_s r o) l in
 
   let o3 ctx =
@@ -57,7 +57,7 @@ let known_answer =
     let l = ["83238735"; "01501458"; "17957585"; "86776967"; "86807031"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen suite ~key ~p ~q in
+        let o = R.get_ok (gen suite ~key ~p ~q) in
         assert_cs_eq_s r o) l in
 
   let o4 ctx =
@@ -67,7 +67,7 @@ let known_answer =
     List.iteri (fun i r ->
         let c = Int64.of_int i in
         let q = istr 8 i in
-        let o = gen suite ~key ~c ~q in
+        let o = R.get_ok (gen suite ~key ~c ~q) in
         assert_cs_eq_s r o) l in
 
   let o5 ctx =
@@ -75,7 +75,7 @@ let known_answer =
     let l =["95209754"; "55907591"; "22048402"; "24218844"; "36209546"] in
     List.iteri (fun i r ->
         let q = istr 8 i in
-        let o = gen suite ~key ~t ~q in
+        let o = R.get_ok (gen suite ~key ~t ~q) in
         assert_cs_eq_s r o) l in
 
   let s1 ctx =
@@ -86,7 +86,7 @@ let known_answer =
              ("SIG13000","76028668");
 	     ("SIG14000","46554205")] in
     List.iter (fun (q, r) ->
-        let o = gen suite ~key ~q in
+        let o = R.get_ok (gen suite ~key ~q) in
         assert_cs_eq_s r o) l in
 
   let s2 ctx =
@@ -97,7 +97,7 @@ let known_answer =
 	     ("SIG1300000","95213541");
              ("SIG1400000","65360607")] in
     List.iter (fun (q, r) ->
-        let o = gen suite ~key ~t ~q in
+        let o = R.get_ok (gen suite ~key ~t ~q) in
         assert_cs_eq_s r o) l in
 
   let m1 ctx =
@@ -113,7 +113,7 @@ let known_answer =
              ("SRV11113CLI22223","95285278");
              ("SRV11114CLI22224","28934924")] in
     List.iter (fun (q, r) ->
-        let o = gen suite ~key ~q in
+        let o = R.get_ok (gen suite ~key ~q) in
         assert_cs_eq_s r o) l in
 
   let m2 ctx =
@@ -124,7 +124,7 @@ let known_answer =
              ("CLI22223SRV11113","90856481");
              ("CLI22224SRV11114","12761449")] in
     List.iter (fun (q, r) ->
-        let o = gen suite ~key ~q in
+        let o = R.get_ok (gen suite ~key ~q) in
         assert_cs_eq_s r o) l in
 
   let m3 ctx =
@@ -135,7 +135,7 @@ let known_answer =
 	     ("SRV11113CLI22223","18951020");
 	     ("SRV11114CLI22224","32528969")] in
     List.iter (fun (q, r) ->
-        let o = gen suite ~key ~p ~q in
+        let o = R.get_ok (gen suite ~key ~p ~q) in
         assert_cs_eq_s r o) l in
   ["one_way" >::: ["OCRA-1:HOTP-SHA1-6:QN08" >::o1;
                    "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1" >:: o2;
@@ -151,7 +151,8 @@ let known_answer =
 
 let coverage =
   let invalid_suite ctx =
-    assert_equal None (t_of_string (suitestring ctx)) in
+    assert_equal
+      Invalid_suite_string (R.get_error (t_of_string (suitestring ctx))) in
 
   let string_of_t ctx =
     let ss = suitestring ctx in
@@ -162,11 +163,40 @@ let coverage =
     let s = suite ctx in
     let _ = challenge s in () in
 
-  let gen_di_missmatch ctx =
-    let suite, key = suite ctx, key `K32 in
-    let q = "6e6ec0469f5ec369a092" in
-    let _ = try gen suite ~key ~q with
-      | _ -> Cstruct.create 0 in () in
+  let gen1 x ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q))
+      (DataInput ("suite requires " ^ x)) in
+
+  let gen_no_c  ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~c:0x00L))
+      (DataInput ("no C in suite")) in
+
+  let gen_no_p  ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~p:pinhash))
+      (DataInput ("no P in suite")) in
+
+  let gen_conflict_p  ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~p:(Cstruct.create 0)))
+      (DataInput ("P length conflicts suite")) in
+
+  let gen_no_s  ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~s:(Cstruct.create 0)))
+      (DataInput ("no S in suite")) in
+
+  let gen_conflict_s ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~s:(Cstruct.create 0)))
+      (DataInput ("S length conflicts suite")) in
+
+  let gen_no_t  ctx =
+    let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
+    assert_equal (R.get_error (gen suite ~key ~q ~t:`Now))
+      (DataInput ("no T in suite")) in
 
   let gen_session_data ctx =
     let suite, key = suite ctx, key `K20 in
@@ -176,18 +206,20 @@ let coverage =
     let _ = gen suite ~key ~s ~q in () in
 
   let verify1 ctx =
-    let suite, key = suite ctx, key `K20 in
-    let q = challenge suite in
-    let a = Cstruct.of_string "does not matter" in
-    let _ = try verify suite ~key ~t:(`Int64 0x0L) ~cw:1 ~tw:1 ~q ~a with
-      | _ -> (false, None) in () in
+    let suite, key, q, a = suite ctx, key `K20, "aaaaaaaaaa", (Cstruct.create 0) in
+    assert_equal (R.get_error (verify suite ~key ~q ~a))
+      (DataInput ("suite requires T")) in
 
   let verify2 ctx =
-    let suite, key = suite ctx, key `K20 in
-    let q = challenge suite in
-    let a = Cstruct.of_string "does not matter" in
-    let _ = try verify suite ~key ~c:0x0L ~cw:1 ~tw:1 ~q ~a with
-      | _ -> (false, None) in () in
+    let suite, key, q, a = suite ctx, key `K20, "aaaaaaaaaa", (Cstruct.create 0) in
+    assert_equal (R.get_error (verify suite ~key ~q ~a ~tw:(-1)))
+      (Window "invalid timestamp window or no T in suite") in
+
+  let verify3 ctx =
+    let suite, key, q, a = suite ctx, key `K20, "aaaaaaaaaa", (Cstruct.create 0) in
+    assert_equal (R.get_error (verify suite ~key ~q ~a ~t:`Now ~tw:5 ~cw:1 ))
+      (Window "invalid counter window or no C in suite") in
+
 
   ["t_of_string" >::: ["this_is_not_a_suite_string" >:: invalid_suite;
                        "OCRA-1::QA08" >:: invalid_suite;
@@ -209,44 +241,54 @@ let coverage =
    "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge0;
                      "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge0;
                      "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge0];
-   "gen" >::: ["OCRA-1:HOTP-SHA256-0:C-QH10" >:: gen_di_missmatch;
-               "OCRA-1:HOTP-SHA256-0:QH10-PSHA1" >:: gen_di_missmatch;
-               "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen_di_missmatch;
-               "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: gen_di_missmatch;
+   "gen" >::: ["OCRA-1:HOTP-SHA256-0:C-QH10" >::  gen1 "C" ;
+               "OCRA-1:HOTP-SHA256-0:QH10-PSHA1" >:: gen1 "P";
+               "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen1 "T";
+               "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: gen1 "S";
+               "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_c;
+               "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_p;
+               "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_s;
+               "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_t;
+               "OCRA-1:HOTP-SHA256-0:QH10-PSHA1" >:: gen_conflict_p;
+               "OCRA-1:HOTP-SHA256-0:QH10-S999" >:: gen_conflict_s;
                "OCRA-1:HOTP-SHA1-0:QH10-S235" >:: gen_session_data;
                "OCRA-1:HOTP-SHA1-10:QH10-S235" >:: gen_session_data];
+
    "verify" >::: ["OCRA-1:HOTP-SHA1-0:QH10-T1M" >:: verify1;
-                  "OCRA-1:HOTP-SHA1-0:C-QH10" >:: verify2;]]
+                  "OCRA-1:HOTP-SHA1-0:QH10" >:: verify2;
+                  "OCRA-1:HOTP-SHA1-0:QH10-T1M" >:: verify3;]
+
+  ]
 
 let verify =
   let v1 ctx =
     let suite, key, c = suite ctx, key `K64, 0xffffffffffffffffL in
     let q = challenge suite in
-    let a = gen ~c suite ~key ~q in
+    let a = R.get_ok (gen ~c suite ~key ~q) in
     let v = verify ~c:(Int64.sub c 23L) ~cw:42 suite ~key ~q ~a in
-    assert_equal v (true, Some (Int64.add c 1L)) in
+    assert_equal (R.get_ok v) (true, Some (Int64.add c 1L)) in
 
   let v2 ctx =
     let suite, key, `Int64 t = suite ctx, key `K64, timestamp in
     let q = challenge suite in
-    let a = gen ~t:(`Int64 t) suite ~key ~q in
+    let a = R.get_ok (gen ~t:(`Int64 t) suite ~key ~q) in
     let v = verify ~t:(`Int64 (Int64.add t 2L)) ~tw:5 suite ~key ~q ~a in
-    assert_equal v (true, None) in
+    assert_equal (R.get_ok v) (true, None) in
 
   let v3 ctx =
     let suite, key, c, t = suite ctx, key `K32, 0x0L, `Now in
     let q = challenge suite in
-    let a = gen ~c ~t suite ~key ~q in
+    let a = R.get_ok (gen ~c ~t suite ~key ~q) in
     let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite ~key ~q ~a in
-    assert_equal v (true, Some (Int64.add c 1L)) in
+    assert_equal (R.get_ok v) (true, Some (Int64.add c 1L)) in
 
   let v4 ctx =
     let suite, key, c, `Int64 t = suite ctx, key `K32, 0x0L, timestamp in
     let q = challenge suite in
-    let a = gen ~c ~t:(`Int64 t) suite ~key ~q in
+    let a = R.get_ok (gen ~c ~t:(`Int64 t) suite ~key ~q) in
     let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t:(`Int64 (Int64.add t 6L))
         ~tw:5 suite ~key ~q ~a in
-    assert_equal v (false, None) in
+    assert_equal (R.get_ok v) (false, None) in
 
   ["OCRA-1:HOTP-SHA512-10:C-QA64" >:: v1;
    "OCRA-1:HOTP-SHA512-10:QA64-T1M" >:: v2;

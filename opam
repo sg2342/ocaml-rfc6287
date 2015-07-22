@@ -22,6 +22,7 @@ depends: [
   "nocrypto" {>= "0.5.1"}
   "stringext"
   "hex"
+  "rresult"
   "ounit" {test}
   "bisect" {test}
 ]

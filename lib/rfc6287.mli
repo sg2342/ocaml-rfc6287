@@ -3,13 +3,18 @@
     @see <https://www.rfc-editor.org/errata_search.php?eid=3729> Errata 3729
  *)
 
+open Rresult
+
 (** The abstract OCRA [suite] type *)
 type t
 
-(** @return [None] if applied on an invaild OCRA suite string *)
-val t_of_string : string -> t option
+type err =
+  | Invalid_suite_string
+  | DataInput of string
+  | Window of string
 
-(** @return [suite] string *)
+val t_of_string : string -> (t,err) result
+
 val string_of_t : t -> string
 
 (** @return random challenge string [q] with format and length as specified in
@@ -21,10 +26,14 @@ val challenge : t -> string
 type timestamp = [`Now | `Int64 of int64 ]
 
 (** Generate [OCRA(K, {\[C\] | Q | \[P | S | T\]})].
-    @return OCRA Response
+    @return {ul
+     {- [Ok a] the response}
+     {- [Error (DataInput error_message)] if parameters do not match [suite]}}
     @param c DataInput C: Counter
-    @param p DataInput P: Pin Hash
-    @param s DataInput S: Session
+    @param p DataInput P: Pin Hash; length must equal digests size of Pin Hash
+     function (as specified in [suite])
+    @param s DataInput S: Session; length must equal session size
+     (as specified in [suite])
     @param t DataInput T: Timestamp
     @param key CryptoFunction key K
     @param q DataInput Q: Challenge
@@ -33,18 +42,22 @@ val gen: ?c:int64 ->
   ?p:Cstruct.t ->
   ?s:Cstruct.t ->
   ?t:timestamp ->
-  key:Cstruct.t -> q:string -> t -> Cstruct.t
+  key:Cstruct.t -> q:string -> t -> (Cstruct.t,err) result
 
 (** Verify OCRA Response.
     @return {ul
-    {- [(true, None)] upon successful verification for [suite] without
+     {- [Ok (true, None)] upon successful verification for [suite] without
        [C] DataInput}
-    {- [(true, Some next_counter)] upon successful verification for [suite]
+     {- [Ok (true, Some next_counter)] upon successful verification for [suite]
        with [C] DataInput}
-    {- [(false, None)] if verification failed}}
+     {- [Ok (false, None)] if verification failed}
+     {- [Error (DataInput error_message)] if parameters do not match [suite]}
+     {- [Error (Window error_message)] on invalid [cw] and [tw] parameters}}
     @param c DataInput C: Counter
-    @param p DataInput P: Pin Hash
-    @param s DataInput S: Session
+    @param p DataInput P: Pin Hash; length must equal digests size of Pin Hash
+     function (as specified in [suite])
+    @param s DataInput S: Session; length must equal session size
+     (as specified in [suite])
     @param t DataInput T: Timestamp
     @param cw Counter Window
     @param tw Timestamp Window
@@ -58,4 +71,4 @@ val verify: ?c:int64 ->
   ?t:timestamp ->
   ?cw:int ->
   ?tw:int ->
-  key:Cstruct.t -> q:string -> a:Cstruct.t -> t -> bool * int64 option
+  key:Cstruct.t -> q:string -> a:Cstruct.t -> t -> (bool * int64 option, err) result
