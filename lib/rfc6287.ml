@@ -15,11 +15,15 @@ type t = { cf : cf ;
 
 type timestamp = [`Now | `Int64 of int64]
 
-exception ParseError
+open Rresult
+
+type err =
+  | Invalid_suite_string
+
 let t_of_string suitestring =
   let open Stringext in
 
-  let die() = raise ParseError in
+  let die() = failwith "invalid suite string" in
 
   let num l mi ma =
     let rec aux l acc =
@@ -84,8 +88,8 @@ let t_of_string suitestring =
   try
     let cf_s, di_s = match split suitestring ~on:':' with
       | ["OCRA-1"; c; d] ->  c, d | _ -> die() in
-    Some { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
-  with ParseError -> None
+    Ok { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
+  with Failure "invalid suite string"-> Error Invalid_suite_string
 
 
 let string_of_t { cf = _ ; di = (_, s) } = s

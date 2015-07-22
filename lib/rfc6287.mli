@@ -3,13 +3,16 @@
     @see <https://www.rfc-editor.org/errata_search.php?eid=3729> Errata 3729
  *)
 
+open Rresult
+
 (** The abstract OCRA [suite] type *)
 type t
 
-(** @return [None] if applied on an invaild OCRA suite string *)
-val t_of_string : string -> t option
+type err =
+  | Invalid_suite_string
 
-(** @return [suite] string *)
+val t_of_string : string -> (t,err) result
+
 val string_of_t : t -> string
 
 (** @return random challenge string [q] with format and length as specified in

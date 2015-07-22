@@ -2,6 +2,7 @@
 
 open OUnit2
 open Rfc6287
+open Rresult
 
 let key k =
   let s = match k with
@@ -22,8 +23,7 @@ let suitestring ctx =
   string_of_node (List.hd ctx.path)
 
 let suite ctx =
-  (* trade off: warning about unmatched cases, or not 100% coverage ... *)
-  let Some s = t_of_string (suitestring ctx) in s
+   R.get_ok (t_of_string (suitestring ctx))
 
 let istr l i =
   let c = char_of_int (i + (int_of_char '0')) in
@@ -151,7 +151,8 @@ let known_answer =
 
 let coverage =
   let invalid_suite ctx =
-    assert_equal None (t_of_string (suitestring ctx)) in
+    assert_equal
+      Invalid_suite_string (R.get_error (t_of_string (suitestring ctx))) in
 
   let string_of_t ctx =
     let ss = suitestring ctx in
