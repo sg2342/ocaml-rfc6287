@@ -19,6 +19,8 @@ open Rresult
 
 type err =
   | Invalid_suite_string
+  | DataInput of string
+  | Window of string
 
 let t_of_string suitestring =
   let open Stringext in
@@ -141,7 +143,8 @@ let format_data_input (di, ss) c q p s t =
   let fc = match (di.c, c) with
     | (false, None) -> create 0
     | (true, Some i) -> cs_64 i
-    | _ -> failwith "data input/suite string missmatch (C)" in
+    | (false, Some _) -> failwith "no C in suite"
+    | (true, None) -> failwith "suite requires C" in
 
   (* Q, mandatory *)
   let fq =
@@ -171,13 +174,17 @@ let format_data_input (di, ss) c q p s t =
   let fp = match (di.p, p) with
     | (None, None) -> create 0
     | (Some dgst, Some y) when Hash.digest_size dgst = len y -> y
-    | _ -> failwith "data input/suite string missmatch (P)" in
+    | (Some _, Some _) -> failwith "P length conflicts suite"
+    | (None, Some _) -> failwith "no P in suite"
+    | (Some _, None) -> failwith "suite requires P" in
 
   (* S, optional *)
   let fs = match (di.s, s) with
     | (None, None) -> create 0
     | (Some n, Some y) when len y = n -> y
-    | _ -> failwith "data input/suite string missmatch (S)" in
+    | (Some _, Some _) -> failwith "S length conflicts suite"
+    | (None, Some _) -> failwith "no S in suite"
+    | (Some _, None) -> failwith "suite requires S" in
 
   (* T, optional *)
   let ft = match (di.t, t) with
@@ -186,7 +193,8 @@ let format_data_input (di, ss) c q p s t =
     | (Some y, Some `Now) ->
       let open Int64 in
       cs_64 (div (of_float (Unix.time())) (of_int y))
-    | _ -> failwith "data input/suite string missmatch (T)" in
+    | (None, Some _) -> failwith "no T in suite"
+    | (Some _, None) -> failwith "suite requires T" in
 
   let c_off = match c with
     | None -> None
@@ -196,43 +204,47 @@ let format_data_input (di, ss) c q p s t =
     | None -> None
     | Some _ ->
       Some (List.fold_left (fun a y -> a + (len y)) 0 [fss;fc;fq;fp;fs]) in
-  (Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off))
+  Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off)
 
 
 let gen ?c ?p ?s ?t ~key ~q suite =
-  let buf = fst (format_data_input suite.di c q p s t) in
-  crypto_function suite.cf key buf
-
+  try
+    let buf = fst (format_data_input suite.di c q p s t) in
+    Ok (crypto_function suite.cf key buf)
+  with Failure f -> Error (DataInput f)
 
 let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
-  let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
-  let verify_c buf =
-    match (c_off, c, cw) with
-    | (_, _, None) ->
-      ((crypto_function suite.cf key buf) = a, None)
-    | (Some c_off, Some c, Some cw1) when cw1 > 0 ->
-      let ce = Int64.add c (Int64.of_int cw1) in
-      let rec loop next =
-        match (crypto_function suite.cf key buf) = a with
-        | true -> (true, Some next)
-        | false when next = ce -> (false, None)
-        | false ->
-          Cstruct.BE.set_uint64 buf c_off next;
-          loop (Int64.add next 0x01L) in
-      loop (Int64.add c 0x01L)
-    | _ -> failwith "invalid counter window/no counter in suite" in
-  match (t_off, tw) with
-  | (_, None) -> verify_c buf0
-  | (Some t_off, Some tw1) when tw1 > 0 ->
-    let t_start, t_stop =
-      let t = Cstruct.BE.get_uint64 buf0 t_off in
-      let w = Int64.of_int tw1 in
-      Int64.sub t w, Int64.add t w in
-    let rec loop t_next =
-      Cstruct.BE.set_uint64 buf0 t_off t_next;
-      match verify_c buf0 with
-      | (true, next_c) -> (true, next_c)
-      | (false, None) when t_next = t_stop -> (false, None)
-      | _ -> loop (Int64.add t_next 1L) in
-    loop t_start
-  | _ -> failwith "invalid timestamp window/no timestamp in suite"
+  try
+    let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
+    let verify_c buf =
+      match (c_off, c, cw) with
+      | (_, _, None) ->
+        Ok ((crypto_function suite.cf key buf) = a, None)
+      | (Some c_off, Some c, Some cw1) when cw1 > 0 ->
+        let ce = Int64.add c (Int64.of_int cw1) in
+        let rec loop next =
+          match (crypto_function suite.cf key buf) = a with
+          | true -> (true, Some next)
+          | false when next = ce -> (false, None)
+          | false ->
+            Cstruct.BE.set_uint64 buf c_off next;
+            loop (Int64.add next 0x01L) in
+        Ok (loop (Int64.add c 0x01L))
+      | _ -> Error (Window "invalid counter window or no C in suite") in
+    match (t_off, tw) with
+    | (_, None) -> verify_c buf0
+    | (Some t_off, Some tw1) when tw1 > 0 ->
+      let t_start, t_stop =
+        let t = Cstruct.BE.get_uint64 buf0 t_off in
+        let w = Int64.of_int tw1 in
+        Int64.sub t w, Int64.add t w in
+      let rec loop t_next =
+        Cstruct.BE.set_uint64 buf0 t_off t_next;
+        match verify_c buf0 with
+        | Ok (true, next_c) -> Ok (true, next_c)
+        | Ok (false, None) when t_next = t_stop -> Ok (false, None)
+        | Error e -> Error e
+        | _ -> loop (Int64.add t_next 1L) in
+      loop t_start
+    | _ -> Error (Window "invalid timestamp window or no T in suite")
+  with | Failure f -> Error (DataInput f)
