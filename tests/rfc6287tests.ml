@@ -14,7 +14,8 @@ let key k =
               "36373839303132333435363738393031323334" in
   Hex.to_cstruct (`Hex s)
 
-let pinhash = Nocrypto.Hash.SHA1.digest (Cstruct.of_string "1234")
+let pinhash_d = `Digest (Nocrypto.Hash.SHA1.digest (Cstruct.of_string "1234"))
+let pinhash = `String "1234"
 
 let timestamp = `Int64 0x132d0b6L
 
@@ -128,7 +129,7 @@ let known_answer =
         assert_cs_eq_s r o) l in
 
   let m3 ctx =
-    let suite, key, p = suite ctx, key `K64, pinhash in
+    let suite, key, p = suite ctx, key `K64, pinhash_d in
     let l = [("SRV11110CLI22220","18806276");
 	     ("SRV11111CLI22221","70020315");
 	     ("SRV11112CLI22222","01600026");
@@ -185,7 +186,8 @@ let coverage =
 
   let gen_conflict_p  ctx =
     let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
-    assert_equal (R.get_error (gen suite ~key ~q ~p:(Cstruct.create 0)))
+    let p = `Digest (Cstruct.create 0) in
+    assert_equal (R.get_error (gen suite ~key ~q ~p))
       (DataInput ("P length conflicts suite")) in
 
   let gen_no_s  ctx =

@@ -21,6 +21,13 @@ val string_of_t : t -> string
     [suite] *)
 val challenge : t -> string
 
+(** if pinhash is [`String x], {!gen} and {!verify} will apply the Pin Hash
+    algorith specified in [suite] to calculate the digest of x.
+
+    if pinhash is [`Digest d], its length must equal digests size of Pin Hash
+    function (as specified in [suite]) *)
+type pinhash = [ `String of string | `Digest of Cstruct.t ]
+
 (** if timestamp is [`Now], {!gen} and {!verify} will use {!Unix.time} and the
     timestep specified in [suite] to calculate the timestamp value *)
 type timestamp = [`Now | `Int64 of int64 ]
@@ -30,8 +37,7 @@ type timestamp = [`Now | `Int64 of int64 ]
      {- [Ok a] the response}
      {- [Error (DataInput error_message)] if parameters do not match [suite]}}
     @param c DataInput C: Counter
-    @param p DataInput P: Pin Hash; length must equal digests size of Pin Hash
-     function (as specified in [suite])
+    @param p DataInput P: Pin Hash
     @param s DataInput S: Session; length must equal session size
      (as specified in [suite])
     @param t DataInput T: Timestamp
@@ -39,7 +45,7 @@ type timestamp = [`Now | `Int64 of int64 ]
     @param q DataInput Q: Challenge
 *)
 val gen: ?c:int64 ->
-  ?p:Cstruct.t ->
+  ?p:pinhash ->
   ?s:Cstruct.t ->
   ?t:timestamp ->
   key:Cstruct.t -> q:string -> t -> (Cstruct.t,err) result
@@ -54,8 +60,7 @@ val gen: ?c:int64 ->
      {- [Error (DataInput error_message)] if parameters do not match [suite]}
      {- [Error (Window error_message)] on invalid [cw] and [tw] parameters}}
     @param c DataInput C: Counter
-    @param p DataInput P: Pin Hash; length must equal digests size of Pin Hash
-     function (as specified in [suite])
+    @param p DataInput P: Pin Hash
     @param s DataInput S: Session; length must equal session size
      (as specified in [suite])
     @param t DataInput T: Timestamp
@@ -66,7 +71,7 @@ val gen: ?c:int64 ->
     @param a Response to check against
 *)
 val verify: ?c:int64 ->
-  ?p:Cstruct.t ->
+  ?p:pinhash ->
   ?s:Cstruct.t ->
   ?t:timestamp ->
   ?cw:int ->

@@ -175,8 +175,10 @@ let format_data_input (di, ss) c q p s t =
   (* P, optional *)
   let fp = match (di.p, p) with
     | (None, None) -> create 0
-    | (Some dgst, Some y) when Hash.digest_size dgst = len y -> y
-    | (Some _, Some _) -> failwith "P length conflicts suite"
+    | (Some dgst, Some `Digest y) when Hash.digest_size dgst = len y -> y
+    | (Some _, Some `Digest _) -> failwith "P length conflicts suite"
+    | (Some dgst, Some `String s) ->
+      Hash.digest dgst (Cstruct.of_string s)
     | (None, Some _) -> failwith "no P in suite"
     | (Some _, None) -> failwith "suite requires P" in
 
