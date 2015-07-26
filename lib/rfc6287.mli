@@ -17,6 +17,16 @@ val t_of_string : string -> (t,err) result
 
 val string_of_t : t -> string
 
+type di = { c : bool ;                                 (** C *)
+            q : ([`A | `N | `H] * int) ;               (** Q *)
+            p : [ `SHA1 | `SHA256 | `SHA512 ] option ; (** P *)
+            s : int option ;                           (** S *)
+            t : int option                             (** T *)
+          }
+
+(** @return DataInput spec *)
+val di_of_t : t -> di
+
 (** @return random challenge string [q] with format and length as specified in
     [suite] *)
 val challenge : t -> string
