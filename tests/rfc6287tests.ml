@@ -173,6 +173,11 @@ let coverage =
     assert_equal (R.get_error (gen suite ~key ~q ~c:0x00L))
       (DataInput ("no C in suite")) in
 
+  let gen_invalid_q  ctx =
+    let suite, key, q = suite ctx, key `K32, "xyz" in
+    assert_equal (R.get_error (gen suite ~key ~q))
+      (DataInput ("invalid Q")) in
+
   let gen_no_p  ctx =
     let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
     assert_equal (R.get_error (gen suite ~key ~q ~p:pinhash))
@@ -246,6 +251,7 @@ let coverage =
                "OCRA-1:HOTP-SHA256-0:QH10-T1H" >:: gen1 "T";
                "OCRA-1:HOTP-SHA256-0:QH10-S123" >:: gen1 "S";
                "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_c;
+               "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_invalid_q;
                "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_p;
                "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_s;
                "OCRA-1:HOTP-SHA256-0:QH10" >:: gen_no_t;
@@ -294,7 +300,6 @@ let verify =
    "OCRA-1:HOTP-SHA512-10:QA64-T1M" >:: v2;
    "OCRA-1:HOTP-SHA256-0:C-QN15-T1M" >:: v3;
    "OCRA-1:HOTP-SHA256-0:C-QN15-T1M" >:: v4]
-
 
 let suite =
   "All" >::: [ "known_answer" >::: known_answer;
