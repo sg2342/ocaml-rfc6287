@@ -152,7 +152,9 @@ let format_data_input (di, ss) c q p s t =
       let x = match (String.length q) mod 2 with
         | 1 -> q ^ "0"
         | _ -> q in
-      Numeric.Z.to_cstruct_be (Z.of_string_base 16 x) in
+      try Numeric.Z.to_cstruct_be (Z.of_string_base 16 x) with
+      | Invalid_argument _  -> failwith "invalid Q"
+    in
     let dec2bin q =
       let z = Z.of_string q in
       let s0 = match Hex.of_cstruct (Numeric.Z.to_cstruct_be z) with
