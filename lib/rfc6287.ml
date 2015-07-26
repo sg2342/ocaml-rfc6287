@@ -1,12 +1,10 @@
 
-type dgst = [ `SHA1 | `SHA256 | `SHA512 ]
-
-type cf = { alg : dgst ;
+type cf = { alg : [ `SHA1 | `SHA256 | `SHA512 ] ;
             trunc : int option }
 
 type di = { c : bool ;
             q : ([`A | `N | `H] * int) ;
-            p : dgst option ;
+            p : [ `SHA1 | `SHA256 | `SHA512 ] option ;
             s : int option ;
             t : int option }
 
@@ -14,7 +12,7 @@ type t = { cf : cf ;
            di : di * string }
 
 type timestamp = [`Now | `Int64 of int64]
-
+type pinhash = [ `String of string | `Digest of Cstruct.t ]
 open Rresult
 
 type err =
@@ -96,6 +94,7 @@ let t_of_string suitestring =
 
 let string_of_t { cf = _ ; di = (_, s) } = s
 
+let di_of_t { cf = _; di = (di, _) } = di
 
 let challenge { di = ({ q = (qf, ql); _ }, _); _ } =
   let b = Nocrypto.Rng.generate ql in

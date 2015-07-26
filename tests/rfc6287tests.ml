@@ -160,6 +160,11 @@ let coverage =
     let s = suite ctx in
     assert_equal ss (string_of_t s) in
 
+  let di_of_t ctx =
+    let s = suite ctx in
+    let di = di_of_t s in
+    assert_equal true di.c in
+
   let challenge0 ctx =
     let s = suite ctx in
     let _ = challenge s in () in
@@ -245,6 +250,7 @@ let coverage =
                        "OCRA-1:HOTP-SHA1-a0:QN08" >:: invalid_suite;
                        "OCRA-1:HTOP-SHA1-0:QA-08" >:: invalid_suite];
    "string_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: string_of_t];
+   "di_of_t" >::: ["OCRA-1:HOTP-SHA512-0:C-QH16-T14H" >:: di_of_t];
    "challenge" >::: ["OCRA-1:HOTP-SHA256-0:QA10" >:: challenge0;
                      "OCRA-1:HOTP-SHA256-0:QN10" >:: challenge0;
                      "OCRA-1:HOTP-SHA256-0:QH10" >:: challenge0];
