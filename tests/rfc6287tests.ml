@@ -176,7 +176,8 @@ let coverage =
 
   let gen_no_c  ctx =
     let suite, key, q = suite ctx, key `K32, "6e6ec0469f5ec369a092" in
-    assert_equal (R.get_error (gen suite ~key ~q ~c:0x00L))
+    let c,p,s,t = Some 0x00L,None,None,None in
+    assert_equal (R.get_error (Rfc6287.gen1 suite ~key ~q ~c ~p ~s ~t))
       (DataInput ("no C in suite")) in
 
   let gen_invalid_q  ctx =
@@ -219,7 +220,8 @@ let coverage =
 
   let verify1 ctx =
     let suite, key, q, a = suite ctx, key `K20, "aaaaaaaaaa", (Cstruct.create 0) in
-    assert_equal (R.get_error (verify suite ~key ~q ~a))
+    let p,tw,cw,s,c,t = None,None,None,None,None,None in
+    assert_equal (R.get_error (verify1 suite ~key ~p ~q ~a ~t ~cw ~tw ~s ~c))
       (DataInput ("suite requires T")) in
 
   let verify2 ctx =
