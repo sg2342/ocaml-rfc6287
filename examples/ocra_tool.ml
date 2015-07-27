@@ -1,11 +1,159 @@
+open Sexplib
+open Sexplib.Conv
 
-let initx cred_file s k c p cw tw =
-  `Error (false, "not implemented")
+type t = {
+  s: Rfc6287.t;
+  k: Cstruct.t;
+  c: int64 option ;
+  p: Cstruct.t option ;
+  cw: int option ;
+  tw: int option ;
+}
 
-let infox f =
-  `Error (false, "not implemented")
 
-open Cmdliner;;
+let hex_string cs = let `Hex s = Hex.of_cstruct cs in  s
+let hex_string_o = function
+  | None -> None
+  | Some cs -> Some (hex_string cs)
+
+let sexp_of_t t =
+  let record kvs =
+    Sexp.List List.(map (fun (k, v) -> (Sexp.List [Sexp.Atom k; v])) kvs) in
+  record [
+    "s", sexp_of_string (Rfc6287.string_of_t t.s);
+    "k", sexp_of_string (hex_string t.k);
+    "c", sexp_of_option sexp_of_int64 t.c;
+    "p", sexp_of_option sexp_of_string (hex_string_o t.p);
+    "cw",  sexp_of_option sexp_of_int t.cw;
+    "tw", sexp_of_option sexp_of_int t.tw; ]
+
+let t_of_sexp = function
+  | Sexp.List l ->
+    (match
+       List.fold_left (fun (s,k,c,p,cw,tw) -> function
+           | Sexp.List [ Sexp.Atom "s"; v ] ->
+             let open Rresult in
+             let suite = match Rfc6287.t_of_string (string_of_sexp v) with
+               | Error _ -> failwith "broken credentials file"
+               | Ok x -> x in
+             (Some suite,k,c,p,cw,tw)
+           | Sexp.List [ Sexp.Atom "k"; v ] ->
+             let key = Nocrypto.Uncommon.Cs.of_hex (string_of_sexp v) in
+             (s, Some key,c,p,cw,tw)
+           | Sexp.List [ Sexp.Atom "c"; v ] ->
+             let counter = option_of_sexp int64_of_sexp v in
+             (s,k,counter,p,cw,tw)
+           | Sexp.List [ Sexp.Atom "p"; v ] ->
+             let pin = match option_of_sexp string_of_sexp v with
+               | None -> None
+               | Some x -> Some (Nocrypto.Uncommon.Cs.of_hex x) in
+             (s,k,c, pin,cw,tw)
+           | Sexp.List [ Sexp.Atom "cw"; v ] ->
+             let counter_window = option_of_sexp int_of_sexp v in
+             (s,k,c,p, counter_window,tw)
+           | Sexp.List [ Sexp.Atom "tw"; v ] ->
+             let timestamp_window = option_of_sexp int_of_sexp v in
+             (s,k,c,p,cw, timestamp_window)
+           | _ -> failwith "broken credentials file")
+         (None,None,None,None,None,None) l with
+    | (Some s, Some k, c, p, cw, tw) ->
+      {s;k;c;p;cw;tw}
+    | _ -> failwith "broken credentials file")
+  | _ -> failwith "broken credentials file"
+
+let of_file f =
+  try
+    let stat = Unix.stat f in
+    let buf = Bytes.create (stat.Unix.st_size) in
+    let fd = Unix.openfile f [Unix.O_RDONLY] 0 in
+    let _read_b = Unix.read fd buf 0 stat.Unix.st_size in
+    let () = Unix.close fd in
+    t_of_sexp (Sexp.of_string buf)
+  with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
+
+let file_of f t =
+  try
+    let fd = Unix.openfile f [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
+    let s = Sexp.to_string_hum (sexp_of_t t) in
+    let _written_bytes = Unix.single_write fd s 0 (Bytes.length s) in
+    let () = Unix.close fd in
+    `Ok "done"
+  with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
+
+let print_t t =
+  Printf.eprintf "suite:            %s\n" (Rfc6287.string_of_t t.s);
+  Printf.eprintf "key:              0x%s\n" (hex_string t.k);
+  (match t.c with
+   | None -> ()
+   | Some c -> Printf.eprintf "counter:          0x%Lx\n" c);
+  (match t.p with
+   | None -> ()
+   | Some p -> Printf.eprintf "pinhash:          0x%s\n" (hex_string p));
+  (match t.cw with
+   | None -> ()
+   | Some cw -> Printf.eprintf "counter_window:   %d\n" cw);
+  (match t.tw with
+   | None -> ()
+   | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok "done"
+
+let initx cred_file i_s i_k i_c i_p i_cw i_tw =
+  let open Rfc6287 in
+  let open Rresult in
+  let e s = failwith s in
+  try
+    let s = match i_s with
+      |None -> failwith "suite_string required"
+      |Some x -> match t_of_string x with
+        | Error _ -> failwith "invalid suite"
+        | Ok y -> y in
+    let k = match i_k with
+      | None -> e "key required"
+      | Some x ->
+        let y = match Stringext.chop_prefix ~prefix:"0x" x with
+          |None -> x
+          |Some z -> z in
+        try Nocrypto.Uncommon.Cs.of_hex y with
+        | Invalid_argument _ -> e "invalid key" in
+    let di = di_of_t s in
+    let c = match (di.c, i_c) with
+      | (false, None) -> None
+      | (false, Some _) ->
+        e "suite does not require counter parameter (-c <counter> must not be set)"
+      | (true, None) ->
+        e "suite requires counter parameter (-c <counter> missing)"
+      | (true, Some x) -> Some x in
+    let p = match (di.p, i_p) with
+      | (None, None) -> None
+      | (Some _, None) ->
+        e "suite requires pin parameter (-p <pin> missing)"
+      | (None, Some _) ->
+        e "suite does not require pin parameter (-p <pin>  must not be set)"
+      | (Some dgst, Some x) ->
+        Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x)) in
+    let cw = match (di.c, i_cw) with
+      | (_, None) -> None
+      | (true, Some x) when x > 0 -> Some x
+      | (true, Some _) -> e "invalid counter_window value"
+      | (false, Some x) ->
+        e "suite does not require counter parameter (-w <counter_window> must not be set)" in
+    let tw = match (di.t, i_tw) with
+      | (_, None) -> None
+      | (Some _, Some x) -> Some x
+      | (None, Some _) ->
+        e "suite does nor require timestamp parameter (-t <timestamp_window) must not be set)" in
+    let t = {s;k;c;p;cw;tw} in
+    match cred_file with
+    | None -> e "credential_file require"
+    | Some f -> file_of f t
+  with | Failure f -> `Error (false, f)
+
+let infox cred_file =
+  match cred_file with
+  | None -> `Error (false, "credential_file required")
+  | Some f ->
+    try print_t (of_file f) with | Failure f -> `Error (false, f)
+
+open Cmdliner
 
 let copts_sect = "COMMON OPTIONS"
 let help_secs = [
@@ -24,7 +172,7 @@ let cred_file =
 let init_cmd =
   let s =
     let doc = "OCRA suite string." in
-    Arg.(value & opt string "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1" & info ["s"]
+    Arg.(value & opt (some string) None & info ["s"]
            ~docv:"suite_string" ~doc) in
   let k =
     let doc = "specified as hexadecimal string." in
@@ -56,7 +204,7 @@ let init_cmd =
     `P "Parse suite string; serialise key, additional DataInput and verify
     options to credential file ..."] @ help_secs
   in
-  Term.(pure initx $ cred_file $ s $ k $ c $ p $ cw $ tw),
+  Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ cw $ tw)),
   Term.info "init" ~sdocs:copts_sect ~doc ~man
 
 let info_cmd =
@@ -65,7 +213,7 @@ let info_cmd =
     [`S "DESCRIPTION";
      `P "Show suite string, key, additional DataInput and verify
      options in credential file ..."] @ help_secs in
-  Term.(pure infox $ cred_file), Term.info "info" ~doc ~sdocs:copts_sect ~man
+  Term.(ret (pure infox $ cred_file)), Term.info "info" ~doc ~sdocs:copts_sect ~man
 
 let default_cmd =
   let doc = "create and view OCRA credential files" in
@@ -75,5 +223,5 @@ let default_cmd =
 
 let cmds = [init_cmd; info_cmd]
 
-let () = match Term.eval_choice default_cmd cmds with
+let () = match Term.eval_choice ~catch:false default_cmd cmds with
   | `Error _ -> exit 1 | _ -> exit 0
