@@ -156,25 +156,30 @@ let challengex cred_file =
     let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
   with | Failure e -> `Error (false, e)
 
+let vr_aux cred_file i_q =
+  let p_q = function
+    | None -> failwith "challenge required"
+    | Some x -> x in
+  let q = p_q i_q in
+  let f = p_f cred_file in
+  let t = of_file f in
+  let suite = t.s in
+  let p = match t.p with
+    | None -> None
+    | Some x -> Some (`Digest x) in
+  let di = Rfc6287.di_of_t suite in
+  let ts = match di.Rfc6287.t with
+    | None -> None
+    | Some _ -> Some `Now in
+  q,f,t,suite,p,ts,None,t.c,t.k
+
 let verifyx cred_file i_q i_a =
   try
-    let q = match i_q with
-      | None -> failwith "challenge required"
-      | Some x -> x in
     let a = match i_a with
       | None -> failwith "response required"
       | Some x -> Cstruct.of_string x in
-    let f = p_f cred_file in
-    let t = of_file f in
-    let suite = t.s in
-    let di = Rfc6287.di_of_t suite in
-    let p = match t.p with
-      | None -> None
-      | Some x -> Some (`Digest x) in
-    let ts = match di.Rfc6287.t with
-      | None -> None
-      | Some _ -> Some `Now in
-    let s,c,cw,tw,key = None,t.c,t.cw,t.tw,t.k in
+    let q,f,t,suite,p,ts,s,c,key = vr_aux cred_file i_q in
+    let cw,tw = t.cw,t.tw in
     let open Rresult in
     let open Rfc6287 in
     match Rfc6287.verify1 ~c ~p ~s ~t:ts ~cw ~tw ~key ~q ~a suite with
@@ -188,22 +193,10 @@ let verifyx cred_file i_q i_a =
     | _ -> failwith "do not know"
   with | Failure e -> `Error (false, e)
 
+
 let responsex cred_file i_q =
   try
-    let q = match i_q with
-      | None -> failwith "challenge required"
-      | Some x -> x in
-    let f = p_f cred_file in
-    let t = of_file f in
-    let suite = t.s in
-    let di = Rfc6287.di_of_t suite in
-    let p = match t.p with
-      | None -> None
-      | Some x -> Some (`Digest x) in
-    let ts = match di.Rfc6287.t with
-      | None -> None
-      | Some _ -> Some `Now in
-    let s,c,key = None,t.c,t.k in
+    let q,f,t,suite,p,ts,s,c,key = vr_aux cred_file i_q in
     let open Rresult in
     let open Rfc6287 in
     match Rfc6287.gen1 ~c ~p ~s ~t:ts ~key ~q suite with
