@@ -162,6 +162,70 @@ let challengex cred_file =
       `Ok "done"
     with | Failure e -> `Error (false, e)
 
+let verifyx cred_file i_q i_a =
+  try
+    let q = match i_q with
+      | None -> failwith "challenge required"
+      | Some x -> x in
+    let a = match i_a with
+      | None -> failwith "response required"
+      | Some x -> Cstruct.of_string x in
+    let f = match cred_file with
+      | None -> failwith "credential_file required"
+      | Some x -> x in
+    let t = of_file f in
+    let suite = t.s in
+    let di = Rfc6287.di_of_t suite in
+    let p = match t.p with
+      | None -> None
+      | Some x -> Some (`Digest x) in
+    let ts = match di.Rfc6287.t with
+      | None -> None
+      | Some _ -> Some `Now in
+    let s,c,cw,tw,key = None,t.c,t.cw,t.tw,t.k in
+    let open Rresult in
+    let open Rfc6287 in
+    match Rfc6287.verify1 ~c ~p ~s ~t:ts ~cw ~tw ~key ~q ~a suite with
+    | Ok (true, next) -> let _ = Printf.eprintf "success\n" in
+      (match next with
+       | None -> `Ok "done"
+       | Some newc -> file_of f {t with c = (Some newc)})
+    | Ok (false, None) -> let _ = Printf.eprintf "failure\n" in `Ok "done"
+    | Error Window s -> failwith s
+    | Error DataInput s -> failwith s
+    | _ -> failwith "do not know"
+  with | Failure e -> `Error (false, e)
+
+let responsex cred_file i_q =
+  try
+    let q = match i_q with
+      | None -> failwith "challenge required"
+      | Some x -> x in
+    let f = match cred_file with
+      | None -> failwith "credential_file required"
+      | Some x -> x in
+    let t = of_file f in
+    let suite = t.s in
+    let di = Rfc6287.di_of_t suite in
+    let p = match t.p with
+      | None -> None
+      | Some x -> Some (`Digest x) in
+    let ts = match di.Rfc6287.t with
+      | None -> None
+      | Some _ -> Some `Now in
+    let s,c,key = None,t.c,t.k in
+    let open Rresult in
+    let open Rfc6287 in
+    match Rfc6287.gen1 ~c ~p ~s ~t:ts ~key ~q suite with
+    | Ok x ->
+      let _ = Printf.eprintf "%s\n" (Cstruct.to_string x) in
+      (match t.c with
+       | None -> `Ok "done"
+       | Some x -> file_of f {t with c = (Some (Int64.add x 1L))})
+    | Error DataInput e -> failwith e
+    | _ -> failwith "do not know"
+  with | Failure e -> `Error (false, e)
+
 open Cmdliner
 
 let copts_sect = "COMMON OPTIONS"
@@ -229,9 +293,37 @@ let challenge_cmd =
   let man =
     [ `S "Description";
       `P "Generate OCRA challenge according to the challenge format specified in
-        the credential file ..."] @ help_secs in
+      the credential file ..."] @ help_secs in
   Term.(ret (pure challengex $ cred_file)), Term.info "challenge"
     ~doc ~sdocs:copts_sect ~man
+
+let verify_cmd =
+  let q =
+    Arg.(value & opt (some string) None & info ["q"] ~docv:"challenge") in
+  let a =
+    Arg.(value & opt (some string) None & info ["a"] ~docv:"response") in
+  let doc = "Verify ORCA response" in
+  let man =
+    [ `S "Description";
+      `P "Verify ORCA response with challenge and credentials from
+      credential file.";
+      `P "Successfull verification will write the next valid counter to the
+      credential file if the OCRA suite specifies C."] @ help_secs in
+  Term.(ret (pure verifyx $ cred_file $ q $ a)),
+  Term.info "verify" ~doc ~sdocs:copts_sect ~man
+
+let response_cmd =
+  let q =
+    Arg.(value & opt (some string) None & info ["q"] ~docv:"challenge") in
+  let doc = "Generate OCRA response" in
+  let man =
+    [ `S "Description";
+      `P "Calculate OCRA response to challenge";
+      `P "If OCAR suite specifies C, teh counter in the credential_file will be
+          incremented."] @ help_secs in
+  Term.(ret (pure responsex $ cred_file $ q)), Term.info "response"
+    ~doc ~sdocs:copts_sect ~man
+
 
 let default_cmd =
   let doc = "create and view OCRA credential files" in
@@ -239,7 +331,7 @@ let default_cmd =
   Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ cred_file)),
   Term.info "ocra_tool" ~sdocs:copts_sect ~doc ~man
 
-let cmds = [init_cmd; info_cmd; challenge_cmd]
+let cmds = [init_cmd; info_cmd; challenge_cmd; verify_cmd; response_cmd]
 
 let () = match Term.eval_choice ~catch:false default_cmd cmds with
   | `Error _ -> exit 1 | _ -> exit 0
