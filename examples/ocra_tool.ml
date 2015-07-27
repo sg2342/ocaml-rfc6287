@@ -12,11 +12,11 @@ type t = {
 
 
 let hex_string cs = let `Hex s = Hex.of_cstruct cs in  s
-let hex_string_o = function
-  | None -> None
-  | Some cs -> Some (hex_string cs)
 
 let sexp_of_t t =
+  let hex_string_o = function
+    | None -> None
+    | Some cs -> Some (hex_string cs) in
   let record kvs =
     Sexp.List List.(map (fun (k, v) -> (Sexp.List [Sexp.Atom k; v])) kvs) in
   record [
@@ -56,8 +56,7 @@ let t_of_sexp = function
              (s,k,c,p,cw, timestamp_window)
            | _ -> failwith "broken credentials file")
          (None,None,None,None,None,None) l with
-    | (Some s, Some k, c, p, cw, tw) ->
-      {s;k;c;p;cw;tw}
+    | (Some s, Some k, c, p, cw, tw) -> {s;k;c;p;cw;tw}
     | _ -> failwith "broken credentials file")
   | _ -> failwith "broken credentials file"
 
@@ -77,7 +76,7 @@ let file_of f t =
     let s = Sexp.to_string_hum (sexp_of_t t) in
     let _written_bytes = Unix.single_write fd s 0 (Bytes.length s) in
     let () = Unix.close fd in
-    `Ok "done"
+    `Ok ()
   with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
 let initx cred_file i_s i_k i_c i_p i_cw i_tw =
@@ -146,7 +145,7 @@ let infox cred_file =
      | Some cw -> Printf.eprintf "counter_window:   %d\n" cw);
     (match t.tw with
      | None -> ()
-     | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok "done" in
+     | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok () in
   match cred_file with
   | None -> `Error (false, "credential_file required")
   | Some f ->
@@ -158,8 +157,7 @@ let challengex cred_file =
   | None -> `Error (false, "credential_file required")
   | Some f -> try
       let t = of_file f in
-      let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in
-      `Ok "done"
+      let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
     with | Failure e -> `Error (false, e)
 
 let verifyx cred_file i_q i_a =
@@ -188,9 +186,9 @@ let verifyx cred_file i_q i_a =
     match Rfc6287.verify1 ~c ~p ~s ~t:ts ~cw ~tw ~key ~q ~a suite with
     | Ok (true, next) -> let _ = Printf.eprintf "success\n" in
       (match next with
-       | None -> `Ok "done"
+       | None -> `Ok ()
        | Some newc -> file_of f {t with c = (Some newc)})
-    | Ok (false, None) -> let _ = Printf.eprintf "failure\n" in `Ok "done"
+    | Ok (false, None) -> let _ = Printf.eprintf "failure\n" in `Ok ()
     | Error Window s -> failwith s
     | Error DataInput s -> failwith s
     | _ -> failwith "do not know"
@@ -220,7 +218,7 @@ let responsex cred_file i_q =
     | Ok x ->
       let _ = Printf.eprintf "%s\n" (Cstruct.to_string x) in
       (match t.c with
-       | None -> `Ok "done"
+       | None -> `Ok ()
        | Some x -> file_of f {t with c = (Some (Int64.add x 1L))})
     | Error DataInput e -> failwith e
     | _ -> failwith "do not know"
@@ -323,7 +321,6 @@ let response_cmd =
           incremented."] @ help_secs in
   Term.(ret (pure responsex $ cred_file $ q)), Term.info "response"
     ~doc ~sdocs:copts_sect ~man
-
 
 let default_cmd =
   let doc = "create and view OCRA credential files" in
