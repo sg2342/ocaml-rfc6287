@@ -135,27 +135,27 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
 
 let infox cred_file =
   let print_t t =
-    Printf.eprintf "suite:            %s\n" (Rfc6287.string_of_t t.s);
-    Printf.eprintf "key:              0x%s\n" (hex_string t.k);
+    Printf.printf "suite:            %s\n" (Rfc6287.string_of_t t.s);
+    Printf.printf "key:              0x%s\n" (hex_string t.k);
     (match t.c with
      | None -> ()
-     | Some c -> Printf.eprintf "counter:          0x%Lx\n" c);
+     | Some c -> Printf.printf "counter:          0x%Lx\n" c);
     (match t.p with
      | None -> ()
-     | Some p -> Printf.eprintf "pinhash:          0x%s\n" (hex_string p));
+     | Some p -> Printf.printf "pinhash:          0x%s\n" (hex_string p));
     (match t.cw with
      | None -> ()
-     | Some cw -> Printf.eprintf "counter_window:   %d\n" cw);
+     | Some cw -> Printf.printf "counter_window:   %d\n" cw);
     (match t.tw with
      | None -> ()
-     | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok () in
+     | Some cw -> Printf.printf "timestamp_window: %d\n" cw); `Ok () in
   try print_t (of_file (p_f cred_file)) with | Failure e -> `Error (false, e)
 
 let challengex cred_file =
   let () = Nocrypto_entropy_unix.initialize () in
   try
     let t = of_file (p_f cred_file) in
-    let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
+    let _ = Printf.printf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
   with | Failure e -> `Error (false, e)
 
 let vr_aux cred_file i_q =
@@ -185,11 +185,11 @@ let verifyx cred_file i_q i_a =
     let open Rresult in
     let open Rfc6287 in
     match Rfc6287.verify1 ~c ~p ~s ~t:ts ~cw ~tw ~key ~q ~a suite with
-    | Ok (true, next) -> let _ = Printf.eprintf "success\n" in
+    | Ok (true, next) -> let _ = Printf.printf "success\n" in
       (match next with
        | None -> `Ok ()
        | Some newc -> file_of f {t with c = (Some newc)})
-    | Ok (false, None) -> let _ = Printf.eprintf "failure\n" in `Ok ()
+    | Ok (false, None) -> let _ = Printf.printf "failure\n" in `Ok ()
     | Error Window s -> failwith s
     | Error DataInput s -> failwith s
     | _ -> failwith "do not know"
@@ -202,7 +202,7 @@ let responsex cred_file i_q =
     let open Rfc6287 in
     match Rfc6287.gen1 ~c ~p ~s ~t:ts ~key ~q suite with
     | Ok x ->
-      let _ = Printf.eprintf "%s\n" (Cstruct.to_string x) in
+      let _ = Printf.printf "%s\n" (Cstruct.to_string x) in
       (match t.c with
        | None -> `Ok ()
        | Some x -> file_of f {t with c = (Some (Int64.add x 1L))})
