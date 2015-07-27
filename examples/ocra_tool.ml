@@ -79,6 +79,10 @@ let file_of f t =
     `Ok ()
   with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
+let p_f = function
+  | None -> failwith "credential_file required"
+  | Some x -> x
+
 let initx cred_file i_s i_k i_c i_p i_cw i_tw =
   let open Rfc6287 in
   let open Rresult in
@@ -124,10 +128,7 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
       | (Some _, Some x) -> Some x
       | (None, Some _) ->
         e "suite does not require timestamp parameter: -t <...> must not be set" in
-    let t = {s;k;c;p;cw;tw} in
-    match cred_file with
-    | None -> e "credential_file require"
-    | Some f -> file_of f t
+    file_of (p_f cred_file) {s;k;c;p;cw;tw}
   with | Failure f -> `Error (false, f)
 
 let infox cred_file =
@@ -146,19 +147,14 @@ let infox cred_file =
     (match t.tw with
      | None -> ()
      | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok () in
-  match cred_file with
-  | None -> `Error (false, "credential_file required")
-  | Some f ->
-    try print_t (of_file f) with | Failure e -> `Error (false, e)
+  try print_t (of_file (p_f cred_file)) with | Failure e -> `Error (false, e)
 
 let challengex cred_file =
   let () = Nocrypto_entropy_unix.initialize () in
-  match cred_file with
-  | None -> `Error (false, "credential_file required")
-  | Some f -> try
-      let t = of_file f in
-      let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
-    with | Failure e -> `Error (false, e)
+  try
+    let t = of_file (p_f cred_file) in
+    let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
+  with | Failure e -> `Error (false, e)
 
 let verifyx cred_file i_q i_a =
   try
@@ -168,9 +164,7 @@ let verifyx cred_file i_q i_a =
     let a = match i_a with
       | None -> failwith "response required"
       | Some x -> Cstruct.of_string x in
-    let f = match cred_file with
-      | None -> failwith "credential_file required"
-      | Some x -> x in
+    let f = p_f cred_file in
     let t = of_file f in
     let suite = t.s in
     let di = Rfc6287.di_of_t suite in
@@ -199,9 +193,7 @@ let responsex cred_file i_q =
     let q = match i_q with
       | None -> failwith "challenge required"
       | Some x -> x in
-    let f = match cred_file with
-      | None -> failwith "credential_file required"
-      | Some x -> x in
+    let f = p_f cred_file in
     let t = of_file f in
     let suite = t.s in
     let di = Rfc6287.di_of_t suite in
