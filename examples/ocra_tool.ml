@@ -80,22 +80,6 @@ let file_of f t =
     `Ok "done"
   with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
-let print_t t =
-  Printf.eprintf "suite:            %s\n" (Rfc6287.string_of_t t.s);
-  Printf.eprintf "key:              0x%s\n" (hex_string t.k);
-  (match t.c with
-   | None -> ()
-   | Some c -> Printf.eprintf "counter:          0x%Lx\n" c);
-  (match t.p with
-   | None -> ()
-   | Some p -> Printf.eprintf "pinhash:          0x%s\n" (hex_string p));
-  (match t.cw with
-   | None -> ()
-   | Some cw -> Printf.eprintf "counter_window:   %d\n" cw);
-  (match t.tw with
-   | None -> ()
-   | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok "done"
-
 let initx cred_file i_s i_k i_c i_p i_cw i_tw =
   let open Rfc6287 in
   let open Rresult in
@@ -118,16 +102,16 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
     let c = match (di.c, i_c) with
       | (false, None) -> None
       | (false, Some _) ->
-        e "suite does not require counter parameter (-c <counter> must not be set)"
+        e "suite does not require counter parameter: -c <...> must not be set"
       | (true, None) ->
-        e "suite requires counter parameter (-c <counter> missing)"
+        e "suite requires counter parameter: -c <...> missing"
       | (true, Some x) -> Some x in
     let p = match (di.p, i_p) with
       | (None, None) -> None
       | (Some _, None) ->
-        e "suite requires pin parameter (-p <pin> missing)"
+        e "suite requires pin parameter: -p <...> missing"
       | (None, Some _) ->
-        e "suite does not require pin parameter (-p <pin>  must not be set)"
+        e "suite does not require pin parameter: -p <...> must not be set"
       | (Some dgst, Some x) ->
         Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x)) in
     let cw = match (di.c, i_cw) with
@@ -135,12 +119,12 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
       | (true, Some x) when x > 0 -> Some x
       | (true, Some _) -> e "invalid counter_window value"
       | (false, Some x) ->
-        e "suite does not require counter parameter (-w <counter_window> must not be set)" in
+        e "suite does not require counter parameter: -w <...> must not be set" in
     let tw = match (di.t, i_tw) with
       | (_, None) -> None
       | (Some _, Some x) -> Some x
       | (None, Some _) ->
-        e "suite does nor require timestamp parameter (-t <timestamp_window) must not be set)" in
+        e "suite does not require timestamp parameter: -t <...> must not be set" in
     let t = {s;k;c;p;cw;tw} in
     match cred_file with
     | None -> e "credential_file require"
@@ -148,10 +132,35 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
   with | Failure f -> `Error (false, f)
 
 let infox cred_file =
+  let print_t t =
+    Printf.eprintf "suite:            %s\n" (Rfc6287.string_of_t t.s);
+    Printf.eprintf "key:              0x%s\n" (hex_string t.k);
+    (match t.c with
+     | None -> ()
+     | Some c -> Printf.eprintf "counter:          0x%Lx\n" c);
+    (match t.p with
+     | None -> ()
+     | Some p -> Printf.eprintf "pinhash:          0x%s\n" (hex_string p));
+    (match t.cw with
+     | None -> ()
+     | Some cw -> Printf.eprintf "counter_window:   %d\n" cw);
+    (match t.tw with
+     | None -> ()
+     | Some cw -> Printf.eprintf "timestamp_window: %d\n" cw); `Ok "done" in
   match cred_file with
   | None -> `Error (false, "credential_file required")
   | Some f ->
-    try print_t (of_file f) with | Failure f -> `Error (false, f)
+    try print_t (of_file f) with | Failure e -> `Error (false, e)
+
+let challengex cred_file =
+  let () = Nocrypto_entropy_unix.initialize () in
+  match cred_file with
+  | None -> `Error (false, "credential_file required")
+  | Some f -> try
+      let t = of_file f in
+      let _ = Printf.eprintf "%s\n" (Rfc6287.challenge t.s) in
+      `Ok "done"
+    with | Failure e -> `Error (false, e)
 
 open Cmdliner
 
@@ -160,8 +169,7 @@ let help_secs = [
   `S copts_sect;
   `P "These options are common to all commands.";
   `S "MORE HELP";
-  `P "Use `$(mname) $(i,COMMAND) --help' for help on a single command.";`Noblank;
-  `S "BUGS"; `P "Check bug reports at http://bugs.example.org.";]
+  `P "Use `$(mname) $(i,COMMAND) --help' for help on a single command.";]
 
 let cred_file =
   let docs = copts_sect in
@@ -213,7 +221,17 @@ let info_cmd =
     [`S "DESCRIPTION";
      `P "Show suite string, key, additional DataInput and verify
      options in credential file ..."] @ help_secs in
-  Term.(ret (pure infox $ cred_file)), Term.info "info" ~doc ~sdocs:copts_sect ~man
+  Term.(ret (pure infox $ cred_file)), Term.info "info" ~doc
+    ~sdocs:copts_sect ~man
+
+let challenge_cmd =
+  let doc = "Generate OCRA challenge" in
+  let man =
+    [ `S "Description";
+      `P "Generate OCRA challenge according to the challenge format specified in
+        the credential file ..."] @ help_secs in
+  Term.(ret (pure challengex $ cred_file)), Term.info "challenge"
+    ~doc ~sdocs:copts_sect ~man
 
 let default_cmd =
   let doc = "create and view OCRA credential files" in
@@ -221,7 +239,7 @@ let default_cmd =
   Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ cred_file)),
   Term.info "ocra_tool" ~sdocs:copts_sect ~doc ~man
 
-let cmds = [init_cmd; info_cmd]
+let cmds = [init_cmd; info_cmd; challenge_cmd]
 
 let () = match Term.eval_choice ~catch:false default_cmd cmds with
   | `Error _ -> exit 1 | _ -> exit 0
