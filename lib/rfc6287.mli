@@ -60,6 +60,12 @@ val gen: ?c:int64 ->
   ?t:timestamp ->
   key:Cstruct.t -> q:string -> t -> (Cstruct.t,err) result
 
+val gen1: c:int64 option ->
+  p:pinhash option ->
+  s:Cstruct.t option ->
+  t:timestamp option ->
+  key:Cstruct.t -> q:string -> t -> (Cstruct.t,err) result
+
 (** Verify OCRA Response.
     @return {ul
      {- [Ok (true, None)] upon successful verification for [suite] without
@@ -86,4 +92,12 @@ val verify: ?c:int64 ->
   ?t:timestamp ->
   ?cw:int ->
   ?tw:int ->
+  key:Cstruct.t -> q:string -> a:Cstruct.t -> t -> (bool * int64 option, err) result
+
+val verify1: c:int64 option->
+  p:pinhash option->
+  s:Cstruct.t option->
+  t:timestamp option->
+  cw:int option->
+  tw:int option->
   key:Cstruct.t -> q:string -> a:Cstruct.t -> t -> (bool * int64 option, err) result

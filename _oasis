@@ -16,6 +16,10 @@ Flag coverage
   Description   : Use Bisect to generate coverage data.
   Default       : false
 
+Flag examples
+  Description   : example programs.
+  Default       : false
+
 Library "rfc6287"
  Path           : lib/
  Modules        : Rfc6287
@@ -40,6 +44,14 @@ Executable "test_runner"
 Test it
  Command        : $test_runner
  Run           $: flag(tests)
+
+Executable "ocra_tool"
+ Path           : examples/
+ Build         $: flag(examples)
+ Install        : false
+ CompiledObject : native
+ MainIs         : ocra_tool.ml
+ BuildDepends   : rfc6287, nocrypto.unix, cmdliner
 
 Document api
   Title: Documentation and API reference
