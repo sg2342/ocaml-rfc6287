@@ -10,7 +10,6 @@ type t = {
   tw: int option ;
 }
 
-
 let hex_string cs = let `Hex s = Hex.of_cstruct cs in  s
 
 let sexp_of_t t =
@@ -24,7 +23,7 @@ let sexp_of_t t =
     "k", sexp_of_string (hex_string t.k);
     "c", sexp_of_option sexp_of_int64 t.c;
     "p", sexp_of_option sexp_of_string (hex_string_o t.p);
-    "cw",  sexp_of_option sexp_of_int t.cw;
+    "cw", sexp_of_option sexp_of_int t.cw;
     "tw", sexp_of_option sexp_of_int t.tw; ]
 
 let t_of_sexp = function
@@ -102,6 +101,9 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
         try Nocrypto.Uncommon.Cs.of_hex y with
         | Invalid_argument _ -> e "invalid key" in
     let di = di_of_t s in
+    let _ = match di.s with
+      | None -> ()
+      | Some _ -> e "suite requires unsupported session parameter (S)" in
     let c = match (di.c, i_c) with
       | (false, None) -> None
       | (false, Some _) ->
@@ -193,7 +195,6 @@ let verifyx cred_file i_q i_a =
     | _ -> failwith "do not know"
   with | Failure e -> `Error (false, e)
 
-
 let responsex cred_file i_q =
   try
     let q,f,t,suite,p,ts,s,c,key = vr_aux cred_file i_q in
@@ -216,7 +217,8 @@ let help_secs = [
   `S copts_sect;
   `P "These options are common to all commands.";
   `S "MORE HELP";
-  `P "Use `$(mname) $(i,COMMAND) --help' for help on a single command.";]
+  `P "Use `$(mname) $(i,COMMAND) --help' for help on a single command.";
+  `S "BUGS"; `P "sure."]
 
 let cred_file =
   let docs = copts_sect in
