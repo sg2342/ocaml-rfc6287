@@ -209,14 +209,16 @@ let format_data_input (di, ss) c q p s t =
       Some (List.fold_left (fun a y -> a + (len y)) 0 [fss;fc;fq;fp;fs]) in
   Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off)
 
-
-let gen ?c ?p ?s ?t ~key ~q suite =
+let gen1 ~c ~p ~s ~t ~key ~q suite =
   try
     let buf = fst (format_data_input suite.di c q p s t) in
     Ok (crypto_function suite.cf key buf)
   with Failure f -> Error (DataInput f)
 
-let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
+let gen ?c ?p ?s ?t ~key ~q suite =
+  gen1 ~c ~p ~s ~t ~key ~q suite
+
+let verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite =
   try
     let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
     let verify_c buf =
@@ -251,3 +253,7 @@ let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
       loop t_start
     | _ -> Error (Window "invalid timestamp window or no T in suite")
   with | Failure f -> Error (DataInput f)
+
+
+let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
+  verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite
