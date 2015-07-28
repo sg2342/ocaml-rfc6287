@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        rfc6287
-Version:     0.1.0
+Version:     1.0.0
 Synopsis:    RFC6287 OCRA (OATH Challenge-Response Algorithm)
 Authors:     Stefan Grundmann <sg2342@googlemail.com>
 Maintainers: Stefan Grundmann <sg2342@googlemail.com>

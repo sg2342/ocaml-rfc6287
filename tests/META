@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2a478f04bed3f36342b929e66fd7bb7c)
-version = "0.1.0"
+# DO NOT EDIT (digest: c4ac52323107dfba0f39ba0545d8dc39)
+version = "1.0.0"
 description = "RFC6287 OCRA (OATH Challenge-Response Algorithm)"
 requires = "rfc6287 oUnit"
 archive(byte) = "testlib.cma"
