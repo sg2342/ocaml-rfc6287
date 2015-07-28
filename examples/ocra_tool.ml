@@ -87,6 +87,9 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
   let open Rresult in
   let e s = failwith s in
   try
+    let strip_0x s = match Stringext.chop_prefix ~prefix:"0x" s with
+      | None -> s
+      | Some x -> x in
     let s = match i_s with
       |None -> failwith "suite_string required"
       |Some x -> match t_of_string x with
@@ -95,10 +98,7 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
     let k = match i_k with
       | None -> e "key required"
       | Some x ->
-        let y = match Stringext.chop_prefix ~prefix:"0x" x with
-          |None -> x
-          |Some z -> z in
-        try Nocrypto.Uncommon.Cs.of_hex y with
+        try Nocrypto.Uncommon.Cs.of_hex (strip_0x x) with
         | Invalid_argument _ -> e "invalid key" in
     let di = di_of_t s in
     let _ = match di.s with
@@ -123,9 +123,7 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
       | (Some dgst, Some x, None) ->
         Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x))
       | (Some dgst, None, Some x) ->
-        let y = match Stringext.chop_prefix ~prefix:"0x" x with
-          | None -> x | Some z -> z in
-        let w = try Nocrypto.Uncommon.Cs.of_hex y with
+        let w = try Nocrypto.Uncommon.Cs.of_hex (strip_0x x) with
           | Invalid_argument _ -> e "invalid pin_hash" in
         if (Cstruct.len w) = (Nocrypto.Hash.digest_size dgst) then Some w
         else e "invalid pin_hash" in
