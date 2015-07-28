@@ -159,10 +159,9 @@ let challengex cred_file =
   with | Failure e -> `Error (false, e)
 
 let vr_aux cred_file i_q =
-  let p_q = function
+  let q = match i_q with
     | None -> failwith "challenge required"
     | Some x -> x in
-  let q = p_q i_q in
   let f = p_f cred_file in
   let t = of_file f in
   let suite = t.s in
