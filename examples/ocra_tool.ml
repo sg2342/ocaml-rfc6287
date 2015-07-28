@@ -135,7 +135,8 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
         e "suite does not require counter parameter: -w <...> must not be set" in
     let tw = match (di.t, i_tw) with
       | (_, None) -> None
-      | (Some _, Some x) -> Some x
+      | (Some _, Some x) when x > 0 -> Some x
+      | (Some _, Some _) -> e "invalid timestamp_window value"
       | (None, Some _) ->
         e "suite does not require timestamp parameter: -t <...> must not be set" in
     file_of (p_f cred_file) {s;k;c;p;cw;tw}
