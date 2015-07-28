@@ -82,7 +82,7 @@ let p_f = function
   | None -> failwith "credential_file required"
   | Some x -> x
 
-let initx cred_file i_s i_k i_c i_p i_cw i_tw =
+let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
   let open Rfc6287 in
   let open Rresult in
   let e s = failwith s in
@@ -111,14 +111,24 @@ let initx cred_file i_s i_k i_c i_p i_cw i_tw =
       | (true, None) ->
         e "suite requires counter parameter: -c <...> missing"
       | (true, Some x) -> Some x in
-    let p = match (di.p, i_p) with
-      | (None, None) -> None
-      | (Some _, None) ->
+    let p = match (di.p, i_p, i_ph) with
+      | (None, None, None) -> None
+      | (Some _, None, None) ->
         e "suite requires pin parameter: -p <...> missing"
-      | (None, Some _) ->
+      | (None, Some _, _) ->
         e "suite does not require pin parameter: -p <...> must not be set"
-      | (Some dgst, Some x) ->
-        Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x)) in
+      | (None, None, Some _) ->
+        e "suite does not require pin parameter: -P <...> must not be set"
+      | (Some _, Some _, Some _) -> e "only on of -p|-P must be set"
+      | (Some dgst, Some x, None) ->
+        Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x))
+      | (Some dgst, None, Some x) ->
+        let y = match Stringext.chop_prefix ~prefix:"0x" x with
+          | None -> x | Some z -> z in
+        let w = try Nocrypto.Uncommon.Cs.of_hex y with
+          | Invalid_argument _ -> e "invalid pin_hash" in
+        if (Cstruct.len w) = (Nocrypto.Hash.digest_size dgst) then Some w
+        else e "invalid pin_hash" in
     let cw = match (di.c, i_cw) with
       | (_, None) -> None
       | (true, Some x) when x > 0 -> Some x
@@ -239,8 +249,12 @@ let init_cmd =
     Arg.(value & opt (some int64) None & info ["c"] ~docv:"counter" ~doc) in
   let p =
     let doc = "If the suite_string requires a pin-hash parameter, it is
-      calculated from $(docv) using the pin-hash algorith in suite-string" in
+      calculated from $(docv) using the pin-hash algorith in suite_string" in
     Arg.(value & opt (some string) None & info ["p"] ~docv:"pin" ~doc) in
+  let ph =
+    let doc = "If the suite_string requires a pin-hash parameter, $(docv) will
+      be used. $(docv) must encoded as hexadecimal string." in
+    Arg.(value & opt (some string) None & info ["P"] ~docv:"pin_hash" ~doc) in
   let cw =
     let doc = "If the suite_string requires a counter parameter,
       $(docv) specifies the maximum number of verify attempts
@@ -260,7 +274,7 @@ let init_cmd =
     `P "Parse suite string; serialise key, additional DataInput and verification
     options to credential file ..."] @ help_secs
   in
-  Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ cw $ tw)),
+  Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ ph $ cw $ tw)),
   Term.info "init" ~sdocs:copts_sect ~doc ~man
 
 let info_cmd =
