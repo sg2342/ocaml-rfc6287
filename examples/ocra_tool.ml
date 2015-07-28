@@ -270,7 +270,7 @@ let init_cmd =
   let doc = "Initialize OCRA credential file." in
   let man = [
     `S "DESCRIPTION";
-    `P "Parse suite string; serialise key, additional DataInput and verification
+    `P "Parse suite string; serialize key, additional DataInput and verification
     options to credential file ..."] @ help_secs
   in
   Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ ph $ cw $ tw)),
@@ -304,7 +304,7 @@ let verify_cmd =
     [ `S "Description";
       `P "Verify ORCA response with challenge and credentials from
       credential file.";
-      `P "Successfull verification will write the next valid counter to the
+      `P "Successful verification will write the next valid counter to the
       credential file if the OCRA suite specifies C."] @ help_secs in
   Term.(ret (pure verifyx $ cred_file $ q $ a)),
   Term.info "verify" ~doc ~sdocs:copts_sect ~man

@@ -32,7 +32,7 @@ val di_of_t : t -> di
 val challenge : t -> string
 
 (** if pinhash is [`String x], {!gen} and {!verify} will apply the Pin Hash
-    algorith specified in [suite] to calculate the digest of x.
+    algorithm specified in [suite] to calculate the digest of x.
 
     if pinhash is [`Digest d], its length must equal digests size of Pin Hash
     function (as specified in [suite]) *)
