@@ -1,28 +1,32 @@
 open Sexplib
 open Sexplib.Conv
 
+(** ocra credentials *)
 type t = {
-  s: Rfc6287.t;
-  k: Cstruct.t;
-  c: int64 option ;
-  p: Cstruct.t option ;
-  cw: int option ;
-  tw: int option ;
+  s: Rfc6287.t;         (** parsed suite *)
+  k: Cstruct.t;         (** key *)
+  c: int64 option ;     (** counter *)
+  p: Cstruct.t option ; (** pinhash *)
+  cw: int option ;      (** counter_window *)
+  tw: int option ;      (** timestamp_window *)
 }
 
-let hex_string cs = let `Hex s = Hex.of_cstruct cs in  s
+(** utility functions *)
+let to_hex cs = let `Hex s = Hex.of_cstruct cs in  s
+let of_hex = Nocrypto.Uncommon.Cs.of_hex
 
+(** serialize/unserialize *)
 let sexp_of_t t =
-  let hex_string_o = function
+  let to_hex_o = function
     | None -> None
-    | Some cs -> Some (hex_string cs) in
+    | Some cs -> Some (to_hex cs) in
   let record kvs =
     Sexp.List List.(map (fun (k, v) -> (Sexp.List [Sexp.Atom k; v])) kvs) in
   record [
     "s", sexp_of_string (Rfc6287.string_of_t t.s);
-    "k", sexp_of_string (hex_string t.k);
+    "k", sexp_of_string (to_hex t.k);
     "c", sexp_of_option sexp_of_int64 t.c;
-    "p", sexp_of_option sexp_of_string (hex_string_o t.p);
+    "p", sexp_of_option sexp_of_string (to_hex_o t.p);
     "cw", sexp_of_option sexp_of_int t.cw;
     "tw", sexp_of_option sexp_of_int t.tw; ]
 
@@ -37,7 +41,7 @@ let t_of_sexp = function
                | Ok x -> x in
              (Some suite,k,c,p,cw,tw)
            | Sexp.List [ Sexp.Atom "k"; v ] ->
-             let key = Nocrypto.Uncommon.Cs.of_hex (string_of_sexp v) in
+             let key = of_hex (string_of_sexp v) in
              (s, Some key,c,p,cw,tw)
            | Sexp.List [ Sexp.Atom "c"; v ] ->
              let counter = option_of_sexp int64_of_sexp v in
@@ -45,7 +49,7 @@ let t_of_sexp = function
            | Sexp.List [ Sexp.Atom "p"; v ] ->
              let pin = match option_of_sexp string_of_sexp v with
                | None -> None
-               | Some x -> Some (Nocrypto.Uncommon.Cs.of_hex x) in
+               | Some x -> Some (of_hex x) in
              (s,k,c, pin,cw,tw)
            | Sexp.List [ Sexp.Atom "cw"; v ] ->
              let counter_window = option_of_sexp int_of_sexp v in
@@ -59,6 +63,7 @@ let t_of_sexp = function
     | _ -> failwith "broken credentials file")
   | _ -> failwith "broken credentials file"
 
+(** storage *)
 let of_file f =
   try
     let stat = Unix.stat f in
@@ -78,11 +83,12 @@ let file_of f t =
     `Ok ()
   with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
-let p_f = function
+let cred_file = function
   | None -> failwith "credential_file required"
   | Some x -> x
 
-let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
+(** "init" command *)
+let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
   let open Rfc6287 in
   let open Rresult in
   let e s = failwith s in
@@ -98,7 +104,7 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
     let k = match i_k with
       | None -> e "key required"
       | Some x ->
-        try Nocrypto.Uncommon.Cs.of_hex (strip_0x x) with
+        try of_hex (strip_0x x) with
         | Invalid_argument _ -> e "invalid key" in
     let di = di_of_t s in
     let _ = match di.s with
@@ -123,7 +129,7 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
       | (Some dgst, Some x, None) ->
         Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x))
       | (Some dgst, None, Some x) ->
-        let w = try Nocrypto.Uncommon.Cs.of_hex (strip_0x x) with
+        let w = try of_hex (strip_0x x) with
           | Invalid_argument _ -> e "invalid pin_hash" in
         if (Cstruct.len w) = (Nocrypto.Hash.digest_size dgst) then Some w
         else e "invalid pin_hash" in
@@ -139,39 +145,42 @@ let initx cred_file i_s i_k i_c i_p i_ph i_cw i_tw =
       | (Some _, Some _) -> e "invalid timestamp_window value"
       | (None, Some _) ->
         e "suite does not require timestamp parameter: -t <...> must not be set" in
-    file_of (p_f cred_file) {s;k;c;p;cw;tw}
+    file_of (cred_file i_f) {s;k;c;p;cw;tw}
   with | Failure f -> `Error (false, f)
 
-let infox cred_file =
+(** "info" command *)
+let infox i_f =
   let print_t t =
     Printf.printf "suite:            %s\n" (Rfc6287.string_of_t t.s);
-    Printf.printf "key:              0x%s\n" (hex_string t.k);
+    Printf.printf "key:              0x%s\n" (to_hex t.k);
     (match t.c with
      | None -> ()
      | Some c -> Printf.printf "counter:          0x%Lx\n" c);
     (match t.p with
      | None -> ()
-     | Some p -> Printf.printf "pinhash:          0x%s\n" (hex_string p));
+     | Some p -> Printf.printf "pinhash:          0x%s\n" (to_hex p));
     (match t.cw with
      | None -> ()
      | Some cw -> Printf.printf "counter_window:   %d\n" cw);
     (match t.tw with
      | None -> ()
      | Some cw -> Printf.printf "timestamp_window: %d\n" cw); `Ok () in
-  try print_t (of_file (p_f cred_file)) with | Failure e -> `Error (false, e)
+  try print_t (of_file (cred_file i_f)) with | Failure e -> `Error (false, e)
 
-let challengex cred_file =
+(** "challenge" command *)
+let challengex i_f =
   let () = Nocrypto_entropy_unix.initialize () in
   try
-    let t = of_file (p_f cred_file) in
+    let t = of_file (cred_file i_f) in
     let _ = Printf.printf "%s\n" (Rfc6287.challenge t.s) in `Ok ()
   with | Failure e -> `Error (false, e)
 
-let vr_aux cred_file i_q =
+(** code shared between verify and response *)
+let vr_aux i_f i_q =
   let q = match i_q with
     | None -> failwith "challenge required"
     | Some x -> x in
-  let f = p_f cred_file in
+  let f = cred_file i_f in
   let t = of_file f in
   let suite = t.s in
   let p = match t.p with
@@ -183,12 +192,13 @@ let vr_aux cred_file i_q =
     | Some _ -> Some `Now in
   q,f,t,suite,p,ts,None,t.c,t.k
 
-let verifyx cred_file i_q i_a =
+(** "verify" command *)
+let verifyx i_f i_q i_a =
   try
     let a = match i_a with
       | None -> failwith "response required"
       | Some x -> Cstruct.of_string x in
-    let q,f,t,suite,p,ts,s,c,key = vr_aux cred_file i_q in
+    let q,f,t,suite,p,ts,s,c,key = vr_aux i_f i_q in
     let cw,tw = t.cw,t.tw in
     let open Rresult in
     let open Rfc6287 in
@@ -203,9 +213,10 @@ let verifyx cred_file i_q i_a =
     | _ -> failwith "do not know"
   with | Failure e -> `Error (false, e)
 
-let responsex cred_file i_q =
+(** "response" command *)
+let responsex i_f i_q =
   try
-    let q,f,t,suite,p,ts,s,c,key = vr_aux cred_file i_q in
+    let q,f,t,suite,p,ts,s,c,key = vr_aux i_f i_q in
     let open Rresult in
     let open Rfc6287 in
     match Rfc6287.gen1 ~c ~p ~s ~t:ts ~key ~q suite with
@@ -218,6 +229,7 @@ let responsex cred_file i_q =
     | _ -> failwith "do not know"
   with | Failure e -> `Error (false, e)
 
+(** command line interface *)
 open Cmdliner
 
 let copts_sect = "COMMON OPTIONS"
@@ -228,38 +240,38 @@ let help_secs = [
   `P "Use `$(mname) $(i,COMMAND) --help' for help on a single command.";
   `S "BUGS"; `P "sure."]
 
-let cred_file =
+let i_f =
   let docs = copts_sect in
   let doc = "the OCRA credential file." in
   Arg.(value & opt (some string) None & info ["f"] ~docv:"credential_file"
          ~doc ~docs)
 
 let init_cmd =
-  let s =
+  let i_s =
     let doc = "OCRA suite string." in
     Arg.(value & opt (some string) None & info ["s"]
            ~docv:"suite_string" ~doc) in
-  let k =
+  let i_k =
     let doc = "specified as hexadecimal string." in
     Arg.(value & opt (some string) None & info ["k"] ~docv:"key" ~doc) in
-  let c =
+  let i_c =
     let doc = "If the suite_string requires a counter parameter,
       $(docv) is the initial counter value." in
     Arg.(value & opt (some int64) None & info ["c"] ~docv:"counter" ~doc) in
-  let p =
+  let i_p =
     let doc = "If the suite_string requires a pin-hash parameter, it is
       calculated from $(docv) using the pin-hash algorith in suite_string" in
     Arg.(value & opt (some string) None & info ["p"] ~docv:"pin" ~doc) in
-  let ph =
+  let i_ph =
     let doc = "If the suite_string requires a pin-hash parameter, $(docv) will
       be used. $(docv) must encoded as hexadecimal string." in
     Arg.(value & opt (some string) None & info ["P"] ~docv:"pin_hash" ~doc) in
-  let cw =
+  let i_cw =
     let doc = "If the suite_string requires a counter parameter,
       $(docv) specifies the maximum number of verify attempts
       (incrementing the counter value). This parameter is optional." in
     Arg.(value & opt (some int) None & info ["w"] ~docv:"counter_window" ~doc) in
-  let tw =
+  let i_tw =
     let doc = "If the suite_string requires a timestamp parameter,
       $(docv) specifies the number of timestamp steps that will be made while
       verifying a response. The verify process will start at (now() -
@@ -273,7 +285,7 @@ let init_cmd =
     `P "Parse suite string; serialize key, additional DataInput and verification
     options to credential file ..."] @ help_secs
   in
-  Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ ph $ cw $ tw)),
+  Term.(ret (pure initx $ i_f $ i_s $ i_k $ i_c $ i_p $ i_ph $ i_cw $ i_tw)),
   Term.info "init" ~sdocs:copts_sect ~doc ~man
 
 let info_cmd =
@@ -282,7 +294,7 @@ let info_cmd =
     [`S "DESCRIPTION";
      `P "Show suite string, key, additional DataInput and verification
      options in credential file ..."] @ help_secs in
-  Term.(ret (pure infox $ cred_file)), Term.info "info" ~doc
+  Term.(ret (pure infox $ i_f)), Term.info "info" ~doc
     ~sdocs:copts_sect ~man
 
 let challenge_cmd =
@@ -291,13 +303,13 @@ let challenge_cmd =
     [ `S "Description";
       `P "Generate OCRA challenge according to the challenge format specified in
       the credential file ..."] @ help_secs in
-  Term.(ret (pure challengex $ cred_file)), Term.info "challenge"
+  Term.(ret (pure challengex $ i_f)), Term.info "challenge"
     ~doc ~sdocs:copts_sect ~man
 
 let verify_cmd =
-  let q =
+  let i_q =
     Arg.(value & opt (some string) None & info ["q"] ~docv:"challenge") in
-  let a =
+  let i_a =
     Arg.(value & opt (some string) None & info ["a"] ~docv:"response") in
   let doc = "Verify ORCA response" in
   let man =
@@ -306,11 +318,11 @@ let verify_cmd =
       credential file.";
       `P "Successful verification will write the next valid counter to the
       credential file if the OCRA suite specifies C."] @ help_secs in
-  Term.(ret (pure verifyx $ cred_file $ q $ a)),
+  Term.(ret (pure verifyx $ i_f $ i_q $ i_a)),
   Term.info "verify" ~doc ~sdocs:copts_sect ~man
 
 let response_cmd =
-  let q =
+  let i_q =
     Arg.(value & opt (some string) None & info ["q"] ~docv:"challenge") in
   let doc = "Generate OCRA response" in
   let man =
@@ -318,14 +330,14 @@ let response_cmd =
       `P "Calculate OCRA response to challenge";
       `P "If OCAR suite specifies C, the counter in the credential_file will be
           incremented."] @ help_secs in
-  Term.(ret (pure responsex $ cred_file $ q)), Term.info "response"
+  Term.(ret (pure responsex $ i_f $ i_q)), Term.info "response"
     ~doc ~sdocs:copts_sect ~man
 
 let default_cmd =
   let doc = "create and view OCRA credential files, generate challenges,
              calculate and verify responses" in
   let man = help_secs in
-  Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ cred_file)),
+  Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ i_f)),
   Term.info "ocra_tool" ~sdocs:copts_sect ~doc ~man
 
 let cmds = [init_cmd; info_cmd; challenge_cmd; verify_cmd; response_cmd]
