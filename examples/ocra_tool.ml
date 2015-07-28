@@ -244,20 +244,20 @@ let init_cmd =
   let cw =
     let doc = "If the suite_string requires a counter parameter,
       $(docv) specifies the maximum number of verify attempts
-      (incrementing the counter value). This parameter is optional" in
+      (incrementing the counter value). This parameter is optional." in
     Arg.(value & opt (some int) None & info ["w"] ~docv:"counter_window" ~doc) in
   let tw =
     let doc = "If the suite_string requires a timestamp parameter,
-      $(docv) specifies the number of timestamp steps will be made while
+      $(docv) specifies the number of timestamp steps that will be made while
       verifying a response. The verify process will start at (now() -
-      $(docv)) and end at (now() + $(docv)).
+      $(docv)) and end fail at (now() + $(docv) +1).
       This parameter is optional." in
     Arg.(value & opt (some int) None & info ["t"] ~docv:"timestamp_window"
            ~doc) in
   let doc = "Initialize OCRA credential file." in
   let man = [
     `S "DESCRIPTION";
-    `P "Parse suite string; serialise key, additional DataInput and verify
+    `P "Parse suite string; serialise key, additional DataInput and verification
     options to credential file ..."] @ help_secs
   in
   Term.(ret (pure initx $ cred_file $ s $ k $ c $ p $ cw $ tw)),
@@ -267,7 +267,7 @@ let info_cmd =
   let doc = "Show content of OCRA credential file." in
   let man =
     [`S "DESCRIPTION";
-     `P "Show suite string, key, additional DataInput and verify
+     `P "Show suite string, key, additional DataInput and verification
      options in credential file ..."] @ help_secs in
   Term.(ret (pure infox $ cred_file)), Term.info "info" ~doc
     ~sdocs:copts_sect ~man
@@ -303,13 +303,14 @@ let response_cmd =
   let man =
     [ `S "Description";
       `P "Calculate OCRA response to challenge";
-      `P "If OCAR suite specifies C, teh counter in the credential_file will be
+      `P "If OCAR suite specifies C, the counter in the credential_file will be
           incremented."] @ help_secs in
   Term.(ret (pure responsex $ cred_file $ q)), Term.info "response"
     ~doc ~sdocs:copts_sect ~man
 
 let default_cmd =
-  let doc = "create and view OCRA credential files" in
+  let doc = "create and view OCRA credential files, generate challenges,
+             calculate and verify responses" in
   let man = help_secs in
   Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ cred_file)),
   Term.info "ocra_tool" ~sdocs:copts_sect ~doc ~man
