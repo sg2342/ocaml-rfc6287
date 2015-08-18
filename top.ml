@@ -1,6 +1,6 @@
 (* #use this to setup the interactive environment. *)
 
-#require "nocrypto, nocrypto.unix, stringext, hex, rresult";;
+#require "nocrypto, nocrypto.unix, astring, hex, rresult";;
 
 #directory "_build/lib";;
 #load_rec "rfc6287.cmo";;

@@ -21,7 +21,14 @@ type err =
   | Window of string
 
 let t_of_string suitestring =
-  let open Stringext in
+  let open Astring.String in
+
+  let to_list s =
+    let rec aux i l =
+      if i < 0 then l else aux (i - 1) (s.[i] :: l) in
+    aux ((length s) -1) [] in
+
+  let of_list l = concat (List.map of_char l) in
 
   let die() = failwith "invalid suite string" in
 
@@ -60,7 +67,7 @@ let t_of_string suitestring =
     let pinhash = function
       | (y, []) -> ((y, None), [])
       | (y, h::t) -> (match to_list h with
-          | 'P'::_ -> ((y, (Some (dgst (string_after h 1)))), t)
+          | 'P'::r -> ((y, (Some (dgst (of_list r)))), t)
           | _ -> ((y, None), h::t)) in
     let nah = function | 'N' -> `N | 'A' -> `A | 'H' -> `H | _ -> die() in
     let questions = function
@@ -68,16 +75,15 @@ let t_of_string suitestring =
           | ['Q';s;x1;x2] -> nah s, (num [x1;x2] 4 64) | _ -> die())), t)
       | _ -> die() in
     let counter = function
-      | [] -> die()
       | h::t when h = "C" -> (true, t)
       | xs -> (false, xs) in
     let (|>) x f = f x in
     let ((((c,q),p),s),t) =
-      split s ~on:'-' |>counter|>questions|>pinhash|>session|>timestep in
+      cuts ~sep:"-" s |>counter|>questions|>pinhash|>session|>timestep in
     { c = c ; q = q ; p = p ; s = s ; t = t } in
 
   let cryptofunction s =
-    match split s ~on:'-' with
+    match cuts ~sep:"-" s with
     | ["HOTP"; a; t] ->
       let trunc =
         match num (to_list t) 0 10 with
@@ -86,7 +92,7 @@ let t_of_string suitestring =
     | _ -> die() in
 
   try
-    let cf_s, di_s = match split suitestring ~on:':' with
+    let cf_s, di_s = match cuts ~sep:":" suitestring with
       | ["OCRA-1"; c; d] ->  c, d | _ -> die() in
     Ok { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
   with Failure "invalid suite string"-> Error Invalid_suite_string
