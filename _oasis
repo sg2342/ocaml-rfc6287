@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        rfc6287
-Version:     1.0.0
+Version:     1.0.1
 Synopsis:    RFC6287 OCRA (OATH Challenge-Response Algorithm)
 Authors:     Stefan Grundmann <sg2342@googlemail.com>
 Maintainers: Stefan Grundmann <sg2342@googlemail.com>
@@ -23,7 +23,7 @@ Flag examples
 Library "rfc6287"
  Path           : lib/
  Modules        : Rfc6287
- BuildDepends   : cstruct, nocrypto, stringext, hex, rresult
+ BuildDepends   : cstruct, nocrypto, astring, hex, rresult
  ByteOpt        : -w A-4-33-40-41-42-43-34-44
 
 Library "testlib"

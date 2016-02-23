@@ -5,7 +5,7 @@ S tests/
 B _build/lib
 B _build/tests
 
-PKG stringext
+PKG astring
 PKG cstruct
 PKG nocrypto
 PKG hex

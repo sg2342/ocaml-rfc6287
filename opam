@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version:      "1.0.0"
+version:      "1.0.1"
 name:         "rfc6287"
 homepage:     "https://github.com/sg2342/ocaml-rfc6287"
 dev-repo:     "https://github.com/sg2342/ocaml-rfc6287.git"
@@ -18,7 +18,7 @@ remove:  [ "ocamlfind" "remove" "rfc6287" ]
 depends: [
   "ocamlfind" {build}
   "nocrypto" {>= "0.5.1"}
-  "stringext"
+  "astring"
   "hex"
   "rresult"
   "ounit" {test}
