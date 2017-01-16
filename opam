@@ -18,6 +18,7 @@ remove:  [ "ocamlfind" "remove" "rfc6287" ]
 depends: [
   "ocamlfind" {build}
   "nocrypto" {>= "0.5.1"}
+  "cstruct" {>= "1.7.0"}
   "astring"
   "hex"
   "rresult"
