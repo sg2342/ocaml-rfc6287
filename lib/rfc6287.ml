@@ -213,7 +213,7 @@ let format_data_input (di, ss) c q p s t =
     | None -> None
     | Some _ ->
       Some (List.fold_left (fun a y -> a + (len y)) 0 [fss;fc;fq;fp;fs]) in
-  Uncommon.Cs.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off)
+  Cstruct.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off)
 
 let gen1 ~c ~p ~s ~t ~key ~q suite =
   try
