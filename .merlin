@@ -1,9 +1,8 @@
 S lib/
 S examples/
-S tests/
+S test/
 
-B _build/lib
-B _build/tests
+B _build/**
 
 PKG astring
 PKG cstruct
@@ -11,4 +10,5 @@ PKG nocrypto
 PKG hex
 PKG rresult
 PKG oUnit
+PKG topkg
 PKG cmdliner

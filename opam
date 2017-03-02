@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version:      "1.0.1"
+version:      "1.0.2"
 name:         "rfc6287"
 homepage:     "https://github.com/sg2342/ocaml-rfc6287"
 dev-repo:     "https://github.com/sg2342/ocaml-rfc6287.git"
@@ -8,26 +8,27 @@ author:       ["Stefan Grundmann <sg2342@googlemail.com>"]
 maintainer:   ["Stefan Grundmann <sg2342@googlemail.com>"]
 license:      "ICS"
 
+
+
 build: [
-  ["ocaml" "setup.ml" "-configure" "--prefix" prefix]
-  ["ocaml" "setup.ml" "-build"]
+    [ "ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "false" ]
 ]
-install: [ make "install" ]
-remove:  [ "ocamlfind" "remove" "rfc6287" ]
+
+build-test: [
+    [ "ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "true" ]
+    [ "ocaml" "pkg/pkg.ml" "test" ]
+]
 
 depends: [
   "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "topkg" {build}
   "nocrypto" {>= "0.5.1"}
   "cstruct" {>= "1.7.0"}
   "astring"
   "hex"
   "rresult"
-  "ounit" {test}
-  "bisect" {test}
+  "oUnit" {test}
 ]
 
-build-test: [
-  [ "./configure" "--%{ounit:enable}%-tests" "--%{bisect:enable}%-coverage" ]
-  [ make "cover_test" ] ]
-
-available: [ocaml-version > "4.02.0"]
+available: [ocaml-version >= "4.03.0"]

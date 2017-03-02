@@ -1,3 +1,5 @@
+open OUnit2
+
 (* test vectors from "Appendix C. Test Vectors" of OCRA RFC *)
 
 open OUnit2
@@ -316,3 +318,8 @@ let suite =
                "verify" >::: verify;
                "coverage" >::: coverage]
 
+let () =
+  Nocrypto_entropy_unix.initialize ()
+
+let () =
+  run_test_tt_main suite
