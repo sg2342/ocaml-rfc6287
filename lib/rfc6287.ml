@@ -95,7 +95,7 @@ let t_of_string suitestring =
     let cf_s, di_s = match cuts ~sep:":" suitestring with
       | ["OCRA-1"; c; d] ->  c, d | _ -> die() in
     Ok { cf = cryptofunction cf_s ; di = (datainput di_s, suitestring) }
-  with Failure "invalid suite string"-> Error Invalid_suite_string
+  with Failure f -> Error Invalid_suite_string
 
 
 let string_of_t { cf = _ ; di = (_, s) } = s
