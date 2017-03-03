@@ -93,9 +93,14 @@ let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
   let open Rresult in
   let e s = failwith s in
   try
-    let strip_0x s = match Stringext.chop_prefix ~prefix:"0x" s with
+(**    let strip_0x s = match Stringext.chop_prefix ~prefix:"0x" s with
       | None -> s
-      | Some x -> x in
+       | Some x -> x in *)
+    let strip_0x s =
+      match Astring.String.with_range s ~len:2 with
+      | "0x" -> Astring.String.with_range s ~first:3
+      | _ -> s
+    in
     let s = match i_s with
       |None -> failwith "suite_string required"
       |Some x -> match t_of_string x with
