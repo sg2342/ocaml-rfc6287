@@ -7,7 +7,8 @@ incl. [RFC Errata ID: 3729](http://www.rfc-editor.org/errata_search.php?eid=3729
 ## Notes on bisect and ounit tests
 
 ```
-$ ocaml pkg/pkg.ml build --test true --with-coverage
+$ ocaml pkg/pkg.ml build --tests true --with-coverage true
+$ ocaml pkg/pkg.ml test
 $ bisect-ppx-report -text - bisect*.out
 ```
 
