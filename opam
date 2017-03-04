@@ -17,7 +17,7 @@ build: [
 build-test: [
     [ "ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "true" "--with-coverage" "true" ]
     [ "ocaml" "pkg/pkg.ml" "test" ]
-    [ "bisect-ppx-report" "-text" "-" "bisect0001.out" "bisect0002.out" "bisect0003.out" ]
+    [ "sh" "-x" "bisect-ppx-report.sh" ]
 ]
 
 depends: [
