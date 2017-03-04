@@ -3,6 +3,7 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/ma
 script: bash -ex .travis-opam.sh
 sudo: required
 env:
-  - PACKAGE="rfc6287" OCAML_VERSION=latest OPAM_VERSION=1.2.0
+  - PACKAGE="rfc6287" OCAML_VERSION=4.03
+  - PACKAGE="rfc6287" OCAML_VERSION=4.04
 notifications:
   email: false
