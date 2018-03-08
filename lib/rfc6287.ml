@@ -111,8 +111,8 @@ let challenge { di = ({ q = (qf, ql); _ }, _); _ } =
       Bytes.set s i c;
       aux (i+1) m a in
   match qf with
-  | `A -> aux 0 93 33; s
-  | `N -> aux 0 10 48; s
+  | `A -> aux 0 93 33; Bytes.unsafe_to_string s
+  | `N -> aux 0 10 48; Bytes.unsafe_to_string s
   | `H -> (match Hex.of_cstruct b with | `Hex s -> s)
 
 
@@ -126,7 +126,7 @@ let crypto_function cf key buf =
       BE.get_uint32 hmac o in
     let s0 = let open Int64 in
       to_string (logand (of_int32 v) 0x7fffffffL) in
-    let s1 = let open Bytes in
+    let s1 = let open String in
       match length s0 with
       | n when n > x -> sub s0 (n - x) x
       | n when n < x -> make (x - n) '0' ^ s0
