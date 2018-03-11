@@ -264,4 +264,4 @@ let verify1 ?time ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite =
 
 
 let verify ?time ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
-  verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite
+  verify1 ?time ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite

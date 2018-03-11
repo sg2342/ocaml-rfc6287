@@ -25,7 +25,7 @@ let suitestring ctx =
   let open OUnitTest in
   string_of_node (List.hd ctx.path)
 
-let suite ?time ctx =
+let suite ctx =
   R.get_ok (t_of_string (suitestring ctx))
 
 let istr l i =
@@ -233,7 +233,8 @@ let coverage =
 
   let verify3 ctx =
     let suite, key, q, a = suite ctx, key `K20, "aaaaaaaaaa", (Cstruct.create 0) in
-    assert_equal (R.get_error (verify suite ~key ~q ~a ~t:`Now ~tw:5 ~cw:1 ))
+    let time = Int64.of_float (Unix.time ()) in
+    assert_equal (R.get_error (verify suite ~time ~key ~q ~a ~t:`Now ~tw:5 ~cw:1 ))
       (Window "invalid counter window or no C in suite") in
 
 
@@ -296,13 +297,9 @@ let verify =
   let v3 ctx =
     let suite, key, c, t = suite ctx, key `K32, 0x0L, `Now in
     let q = challenge suite in
-    let time64 =
-          let time = Unix.time() |> Astring.String.of_float
-               |> Astring.String.cuts ~sep:"." |> List.hd in
-      Int64.of_string time in
-    let a = R.get_ok (gen ~time:time64 ~c ~t suite ~key ~q) in
-    let v = verify ~time:time64 ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite
-        ~key ~q ~a in
+    let time = Int64.of_float (Unix.time ()) in
+    let a = R.get_ok (gen ~time ~c ~t suite ~key ~q) in
+    let v = verify ~time ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite ~key ~q ~a in
     assert_equal ~printer:(function
         | true , Some i -> "true,Some:" ^ Int64.to_string i
         | false, Some i -> "false,Some:" ^ Int64.to_string i
