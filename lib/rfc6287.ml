@@ -134,7 +134,7 @@ let crypto_function cf key buf =
     Cstruct.of_string s1
 
 
-let format_data_input (di, ss) c q p s t =
+let format_data_input ?time (di, ss) c q p s t =
   let open Cstruct in
   let open Nocrypto in
   let cs_64 i =
@@ -196,14 +196,16 @@ let format_data_input (di, ss) c q p s t =
     | (Some _, None) -> failwith "suite requires S" in
 
   (* T, optional *)
-  let ft = match (di.t, t) with
-    | (None, None) -> create 0
-    | (Some _, Some `Int64 i) -> cs_64 i
-    | (Some y, Some `Now) ->
+  let ft = match di.t, t, time with
+    | (None, None, _) -> create 0
+    | (Some _, Some `Int64 i, _) -> cs_64 i
+    | (Some y, Some `Now, Some time) ->
       let open Int64 in
-      cs_64 (div (of_float (Unix.time())) (of_int y))
-    | (None, Some _) -> failwith "no T in suite"
-    | (Some _, None) -> failwith "suite requires T" in
+      cs_64 (div (time) (of_int y))
+    | (Some _, Some `Now, None) -> failwith "no timestamp provided, try: (Unix.\
+                                             time() |> Astring.String.of_float)"
+    | (None, Some _, _) -> failwith "no T in suite"
+    | (Some _, None, _) -> failwith "suite requires T" in
 
   let c_off = match c with
     | None -> None
@@ -215,18 +217,18 @@ let format_data_input (di, ss) c q p s t =
       Some (List.fold_left (fun a y -> a + (len y)) 0 [fss;fc;fq;fp;fs]) in
   Cstruct.concat [fss;fc;fq;fp;fs;ft], (c_off, t_off)
 
-let gen1 ~c ~p ~s ~t ~key ~q suite =
+let gen1 ?time ~c ~p ~s ~t ~key ~q suite =
   try
-    let buf = fst (format_data_input suite.di c q p s t) in
+    let buf = fst (format_data_input ?time suite.di c q p s t) in
     Ok (crypto_function suite.cf key buf)
   with Failure f -> Error (DataInput f)
 
-let gen ?c ?p ?s ?t ~key ~q suite =
-  gen1 ~c ~p ~s ~t ~key ~q suite
+let gen ?time ?c ?p ?s ?t ~key ~q suite =
+  gen1 ?time ~c ~p ~s ~t ~key ~q suite
 
-let verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite =
+let verify1 ?time ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite =
   try
-    let (buf0, (c_off, t_off)) = format_data_input suite.di c q p s t in
+    let (buf0, (c_off, t_off)) = format_data_input ?time suite.di c q p s t in
     let verify_c buf =
       match (c_off, c, cw) with
       | (_, _, None) ->
@@ -261,5 +263,5 @@ let verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite =
   with | Failure f -> Error (DataInput f)
 
 
-let verify ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
+let verify ?time ?c ?p ?s ?t ?cw ?tw ~key ~q ~a suite =
   verify1 ~c ~p ~s ~t ~cw ~tw ~key ~q ~a suite

@@ -25,7 +25,7 @@ let suitestring ctx =
   let open OUnitTest in
   string_of_node (List.hd ctx.path)
 
-let suite ctx =
+let suite ?time ctx =
   R.get_ok (t_of_string (suitestring ctx))
 
 let istr l i =
@@ -87,7 +87,7 @@ let known_answer =
              ("SIG11000","04110475");
              ("SIG12000","31331128");
              ("SIG13000","76028668");
-	     ("SIG14000","46554205")] in
+             ("SIG14000","46554205")] in
     List.iter (fun (q, r) ->
         let o = R.get_ok (gen suite ~key ~q) in
         assert_cs_eq_s r o) l in
@@ -97,7 +97,7 @@ let known_answer =
     let l = [("SIG1000000","77537423");
              ("SIG1100000","31970405");
              ("SIG1200000","10235557");
-	     ("SIG1300000","95213541");
+             ("SIG1300000","95213541");
              ("SIG1400000","65360607")] in
     List.iter (fun (q, r) ->
         let o = R.get_ok (gen suite ~key ~t ~q) in
@@ -107,9 +107,9 @@ let known_answer =
     let suite, key = suite ctx, key `K32 in
     let l = [("CLI22220SRV11110","28247970");
              ("CLI22221SRV11111","01984843");
-	     ("CLI22222SRV11112","65387857");
+             ("CLI22222SRV11112","65387857");
              ("CLI22223SRV11113","03351211");
-	     ("CLI22224SRV11114","83412541");
+             ("CLI22224SRV11114","83412541");
              ("SRV11110CLI22220","15510767");
              ("SRV11111CLI22221","90175646");
              ("SRV11112CLI22222","33777207");
@@ -133,10 +133,10 @@ let known_answer =
   let m3 ctx =
     let suite, key, p = suite ctx, key `K64, pinhash_d in
     let l = [("SRV11110CLI22220","18806276");
-	     ("SRV11111CLI22221","70020315");
-	     ("SRV11112CLI22222","01600026");
-	     ("SRV11113CLI22223","18951020");
-	     ("SRV11114CLI22224","32528969")] in
+             ("SRV11111CLI22221","70020315");
+             ("SRV11112CLI22222","01600026");
+             ("SRV11113CLI22223","18951020");
+             ("SRV11114CLI22224","32528969")] in
     List.iter (fun (q, r) ->
         let o = R.get_ok (gen suite ~key ~p ~q) in
         assert_cs_eq_s r o) l in
@@ -296,9 +296,20 @@ let verify =
   let v3 ctx =
     let suite, key, c, t = suite ctx, key `K32, 0x0L, `Now in
     let q = challenge suite in
-    let a = R.get_ok (gen ~c ~t suite ~key ~q) in
-    let v = verify ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite ~key ~q ~a in
-    assert_equal (R.get_ok v) (true, Some (Int64.add c 1L)) in
+    let time64 =
+          let time = Unix.time() |> Astring.String.of_float
+               |> Astring.String.cuts ~sep:"." |> List.hd in
+      Int64.of_string time in
+    let a = R.get_ok (gen ~time:time64 ~c ~t suite ~key ~q) in
+    let v = verify ~time:time64 ~c:(Int64.sub c 23L) ~cw:42 ~t ~tw:5 suite
+        ~key ~q ~a in
+    assert_equal ~printer:(function
+        | true , Some i -> "true,Some:" ^ Int64.to_string i
+        | false, Some i -> "false,Some:" ^ Int64.to_string i
+        | true, None -> "true,None"
+        | false, None -> "false,None"
+      )
+      (R.get_ok v) (true, Some (Int64.add c 1L)) in
 
   let v4 ctx =
     let suite, key, c, `Int64 t = suite ctx, key `K32, 0x0L, timestamp in
