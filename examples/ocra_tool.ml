@@ -71,13 +71,13 @@ let of_file f =
     let fd = Unix.openfile f [Unix.O_RDONLY] 0 in
     let _read_b = Unix.read fd buf 0 stat.Unix.st_size in
     let () = Unix.close fd in
-    t_of_sexp (Sexp.of_string buf)
+    t_of_sexp (Sexp.of_string (Bytes.unsafe_to_string buf))
   with | Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
 let file_of f t =
   try
     let fd = Unix.openfile f [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
-    let s = Sexp.to_string_hum (sexp_of_t t) in
+    let s = Bytes.unsafe_of_string (Sexp.to_string_hum (sexp_of_t t)) in
     let _written_bytes = Unix.single_write fd s 0 (Bytes.length s) in
     let () = Unix.close fd in
     `Ok ()

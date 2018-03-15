@@ -54,13 +54,13 @@ type timestamp = [`Now | `Int64 of int64 ]
     @param key CryptoFunction key K
     @param q DataInput Q: Challenge
 *)
-val gen: ?c:int64 ->
+val gen: ?time:int64 -> ?c:int64 ->
   ?p:pinhash ->
   ?s:Cstruct.t ->
   ?t:timestamp ->
   key:Cstruct.t -> q:string -> t -> (Cstruct.t,err) result
 
-val gen1: c:int64 option ->
+val gen1: ?time:int64 -> c:int64 option ->
   p:pinhash option ->
   s:Cstruct.t option ->
   t:timestamp option ->
@@ -86,7 +86,7 @@ val gen1: c:int64 option ->
     @param q DataInput Q: Challenge
     @param a Response to check against
 *)
-val verify: ?c:int64 ->
+val verify: ?time:int64 -> ?c:int64 ->
   ?p:pinhash ->
   ?s:Cstruct.t ->
   ?t:timestamp ->
@@ -94,7 +94,7 @@ val verify: ?c:int64 ->
   ?tw:int ->
   key:Cstruct.t -> q:string -> a:Cstruct.t -> t -> (bool * int64 option, err) result
 
-val verify1: c:int64 option->
+val verify1: ?time:int64 -> c:int64 option->
   p:pinhash option->
   s:Cstruct.t option->
   t:timestamp option->

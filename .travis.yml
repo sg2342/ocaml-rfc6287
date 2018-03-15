@@ -5,5 +5,7 @@ sudo: required
 env:
   - PACKAGE="rfc6287" OCAML_VERSION=4.03
   - PACKAGE="rfc6287" OCAML_VERSION=4.04
+  - PACKAGE="rfc6287" OCAML_VERSION=4.05
+  - PACKAGE="rfc6287" OCAML_VERSION=4.06
 notifications:
   email: false
