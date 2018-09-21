@@ -7,6 +7,7 @@ bug-reports:  "https://github.com/sg2342/ocaml-rfc6287/issues"
 author:       ["Stefan Grundmann <sg2342@googlemail.com>"]
 maintainer:   ["Stefan Grundmann <sg2342@googlemail.com>"]
 license:      "BSD2"
+doc: 	      "https://sg2342.github.io/ocaml-rfc6287/doc"
 
 
 
@@ -30,5 +31,5 @@ depends: [
   "hex"
   "rresult"
   "ounit" {test}
-  "bisect_ppx" {test}
+  "bisect_ppx" {build & >= "1.3.0"}
 ]
