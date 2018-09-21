@@ -2,7 +2,6 @@ open OUnit2
 
 (* test vectors from "Appendix C. Test Vectors" of OCRA RFC *)
 
-open OUnit2
 open Rfc6287
 open Rresult
 
