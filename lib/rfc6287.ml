@@ -115,7 +115,7 @@ let t_of_string suitestring =
       | _ -> die ()
     in
     Ok {cf= cryptofunction cf_s; di= (datainput di_s, suitestring)}
-  with Failure f -> Error Invalid_suite_string
+  with Failure _ -> Error Invalid_suite_string
 
 let string_of_t {cf= _; di= _, s} = s
 
