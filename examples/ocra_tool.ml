@@ -160,7 +160,7 @@ let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
       | _, None -> None
       | true, Some x when x > 0 -> Some x
       | true, Some _ -> e "invalid counter_window value"
-      | false, Some x ->
+      | false, Some _ ->
           e
             "suite does not require counter parameter: -w <...> must not be set"
     in
