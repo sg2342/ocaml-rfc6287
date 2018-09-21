@@ -2,7 +2,7 @@ opam-version: "2.0"
 version:      "1.0.4"
 name:         "rfc6287"
 homepage:     "https://github.com/sg2342/ocaml-rfc6287"
-dev-repo:     "https://github.com/sg2342/ocaml-rfc6287.git"
+dev-repo:     "git+https://github.com/sg2342/ocaml-rfc6287.git"
 bug-reports:  "https://github.com/sg2342/ocaml-rfc6287/issues"
 author:       ["Stefan Grundmann <sg2342@googlemail.com>"]
 maintainer:   ["Stefan Grundmann <sg2342@googlemail.com>"]
@@ -14,11 +14,12 @@ build: [
     [ "dune" "build" "-p" name "-j" jobs ]
 ]
 
-build-test: [
+run-test: [
     [ "dune" "runtest" ]
 ]
 
 depends: [
+  "ocaml" {>= "4.02.3"}
   "dune" {build}
   "ocamlfind" {build}
   "ocamlbuild" {build}
@@ -31,5 +32,3 @@ depends: [
   "ounit" {test}
   "bisect_ppx" {test}
 ]
-
-available: [ocaml-version >= "4.03.0"]
