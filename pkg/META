@@ -1,8 +1,0 @@
-version = "%%VERSION_NUM%%"
-description = "RFC6287 OCRA (OATH Challenge-Response Algorithm)"
-requires = "cstruct nocrypto astring hex rresult"
-archive(byte) = "rfc6287.cma"
-archive(native) = "rfc6287.cmxa"
-plugin(byte) = "rfc6287.cma"
-plugin(native) = "rfc6287.cmxs"
-exists_if = "rfc6287.cma"

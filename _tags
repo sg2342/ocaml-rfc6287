@@ -1,7 +1,0 @@
-true: bin_annot
-true: package(astring cstruct hex nocrypto rresult)
-
-"lib" : include
-
-<test/tests.{ml,native,byte}>: package(oUnit nocrypto.unix)
-<examples/ocra_tool.{ml,native,byte}>: package(cmdliner nocrypto.unix)

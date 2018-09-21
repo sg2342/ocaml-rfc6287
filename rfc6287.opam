@@ -1,5 +1,5 @@
-opam-version: "1.2"
-version:      "1.0.3"
+opam-version: "2.0"
+version:      "1.0.4"
 name:         "rfc6287"
 homepage:     "https://github.com/sg2342/ocaml-rfc6287"
 dev-repo:     "https://github.com/sg2342/ocaml-rfc6287.git"
@@ -11,16 +11,15 @@ license:      "BSD2"
 
 
 build: [
-    [ "ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "false" ]
+    [ "dune" "build" "-p" name "-j" jobs ]
 ]
 
 build-test: [
-    [ "ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%" "--tests" "true" "--with-coverage" "true" ]
-    [ "ocaml" "pkg/pkg.ml" "test" ]
-    [ "sh" "-x" "bisect-ppx-report.sh" ]
+    [ "dune" "runtest" ]
 ]
 
 depends: [
+  "dune" {build}
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "topkg" {build}
