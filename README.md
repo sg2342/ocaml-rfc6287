@@ -7,7 +7,7 @@ incl. [RFC Errata ID: 3729](http://www.rfc-editor.org/errata_search.php?eid=3729
 
 [![Build Status](https://travis-ci.org/sg2342/ocaml-rfc6287.svg?branch=master)](https://travis-ci.org/sg2342/ocaml-rfc6287)
 
-[API documentation]("https://sg2342.github.io/ocaml-rfc6287/doc/")  is available online.
+[API documentation](https://sg2342.github.io/ocaml-rfc6287/doc/)  is available online.
 
 ## Notes on bisect and ounit tests
 
