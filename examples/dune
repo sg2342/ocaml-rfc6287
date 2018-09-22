@@ -1,4 +1,7 @@
+(alias
+  (name default)
+  (deps ocra_tool.exe))
+
 (executable
   (name ocra_tool)
-  (public_name ocra_tool)
   (libraries rfc6287 cmdliner nocrypto.unix))

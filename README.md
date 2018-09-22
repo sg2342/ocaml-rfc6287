@@ -21,7 +21,7 @@ $ bisect-ppx-report -I _build/default/ -text - _build/default/test/bisect*.out
 
 enable and build ocra_tool example
 ```
-$ dune build examples/ocra_tool.exe
+$ mv dune dune_ignore_me; dune build examples
 ```
 
 create credential files for client and server (server has a counter window of 5)
