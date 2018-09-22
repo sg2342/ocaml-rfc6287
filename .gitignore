@@ -1,6 +1,3 @@
 _build/
-
-*.native
+*.merlin
 *.install
-*.byte
-*.docdir
