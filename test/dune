@@ -1,6 +1,6 @@
 (executable
   (name test_rfc6287)
-  (libraries rfc6287 oUnit bisect_ppx nocrypto.unix))
+  (libraries rfc6287 oUnit nocrypto.unix))
 
 (alias
   (name runtest)
