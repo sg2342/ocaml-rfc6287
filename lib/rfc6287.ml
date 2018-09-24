@@ -136,8 +136,24 @@ let challenge {di= {q= qf, ql; _}, _; _} =
   | `N -> aux 0 10 48 ; Bytes.unsafe_to_string s
   | `H -> ( match Hex.of_cstruct b with `Hex s -> s )
 
+let hmac alg key buf =
+  let open Digestif in
+  match alg with
+  | `SHA1 ->
+      let to_cstruct (d : SHA1.t) = Cstruct.of_string (d :> string) in
+      SHA1.hmac_bytes (Cstruct.to_bytes key) (Cstruct.to_bytes buf)
+      |> to_cstruct
+  | `SHA256 ->
+      let to_cstruct (d : SHA256.t) = Cstruct.of_string (d :> string) in
+      SHA256.hmac_bytes (Cstruct.to_bytes key) (Cstruct.to_bytes buf)
+      |> to_cstruct
+  | `SHA512 ->
+      let to_cstruct (d : SHA512.t) = Cstruct.of_string (d :> string) in
+      SHA512.hmac_bytes (Cstruct.to_bytes key) (Cstruct.to_bytes buf)
+      |> to_cstruct
+
 let crypto_function cf key buf =
-  let hmac = Nocrypto.Hash.mac cf.alg ~key buf in
+  let hmac = hmac cf.alg key buf in
   match cf.trunc with
   | None -> hmac
   | Some x ->
@@ -159,9 +175,26 @@ let crypto_function cf key buf =
       in
       Cstruct.of_string s1
 
+let digest_size = function
+  | `SHA1 -> Digestif.SHA1.digest_size
+  | `SHA256 -> Digestif.SHA256.digest_size
+  | `SHA512 -> Digestif.SHA512.digest_size
+
+let digest dgst s =
+  let open Digestif in
+  match dgst with
+  | `SHA1 ->
+      let to_cstruct (d : SHA1.t) = Cstruct.of_string (d :> string) in
+      SHA1.digest_string s |> to_cstruct
+  | `SHA256 ->
+      let to_cstruct (d : SHA256.t) = Cstruct.of_string (d :> string) in
+      SHA256.digest_string s |> to_cstruct
+  | `SHA512 ->
+      let to_cstruct (d : SHA512.t) = Cstruct.of_string (d :> string) in
+      SHA512.digest_string s |> to_cstruct
+
 let format_data_input ?time (di, ss) c q p s t =
   let open Cstruct in
-  let open Nocrypto in
   let cs_64 i =
     let cs = create 8 in
     BE.set_uint64 cs 0 i ; cs
@@ -180,13 +213,13 @@ let format_data_input ?time (di, ss) c q p s t =
   let fq =
     let hex2bin q =
       let x = match String.length q mod 2 with 1 -> q ^ "0" | _ -> q in
-      try Numeric.Z.to_cstruct_be (Z.of_string_base 16 x)
+      try Nocrypto.Numeric.Z.to_cstruct_be (Z.of_string_base 16 x)
       with Invalid_argument _ -> failwith "invalid Q"
     in
     let dec2bin q =
       let z = Z.of_string q in
       let s0 =
-        match Hex.of_cstruct (Numeric.Z.to_cstruct_be z) with
+        match Hex.of_cstruct (Nocrypto.Numeric.Z.to_cstruct_be z) with
         | `Hex "" -> "000"
         | `Hex h -> h
       in
@@ -212,9 +245,9 @@ let format_data_input ?time (di, ss) c q p s t =
   let fp =
     match (di.p, p) with
     | None, None -> create 0
-    | Some dgst, Some (`Digest y) when Hash.digest_size dgst = len y -> y
+    | Some dgst, Some (`Digest y) when digest_size dgst = len y -> y
     | Some _, Some (`Digest _) -> failwith "P length conflicts suite"
-    | Some dgst, Some (`String s) -> Hash.digest dgst (Cstruct.of_string s)
+    | Some dgst, Some (`String s) -> digest dgst s
     | None, Some _ -> failwith "no P in suite"
     | Some _, None -> failwith "suite requires P"
   in
