@@ -15,8 +15,6 @@ let to_hex cs =
   let (`Hex s) = Hex.of_cstruct cs in
   s
 
-let of_hex = Nocrypto.Uncommon.Cs.of_hex
-
 (** serialize/unserialize *)
 let sexp_of_t t =
   let to_hex_o = function None -> None | Some cs -> Some (to_hex cs) in
@@ -45,7 +43,7 @@ let t_of_sexp = function
               in
               (Some suite, k, c, p, cw, tw)
           | Sexp.List [Sexp.Atom "k"; v] ->
-              let key = of_hex (string_of_sexp v) in
+              let key = Cstruct.of_hex (string_of_sexp v) in
               (s, Some key, c, p, cw, tw)
           | Sexp.List [Sexp.Atom "c"; v] ->
               let counter = option_of_sexp int64_of_sexp v in
@@ -54,7 +52,7 @@ let t_of_sexp = function
               let pin =
                 match option_of_sexp string_of_sexp v with
                 | None -> None
-                | Some x -> Some (of_hex x)
+                | Some x -> Some (Cstruct.of_hex x)
               in
               (s, k, c, pin, cw, tw)
           | Sexp.List [Sexp.Atom "cw"; v] ->
@@ -118,7 +116,7 @@ let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
       match i_k with
       | None -> e "key required"
       | Some x -> (
-        try of_hex (strip_0x x) with Invalid_argument _ -> e "invalid key" )
+        try Cstruct.of_hex (strip_0x x) with Invalid_argument _ -> e "invalid key" )
     in
     let di = di_of_t s in
     let _ =
@@ -146,13 +144,13 @@ let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
           e "suite does not require pin parameter: -P <...> must not be set"
       | Some _, Some _, Some _ -> e "only on of -p|-P must be set"
       | Some dgst, Some x, None ->
-          Some (Nocrypto.Hash.digest dgst (Cstruct.of_string x))
+          Some (Mirage_crypto.Hash.digest dgst (Cstruct.of_string x))
       | Some dgst, None, Some x ->
           let w =
-            try of_hex (strip_0x x) with Invalid_argument _ ->
+            try Cstruct.of_hex (strip_0x x) with Invalid_argument _ ->
               e "invalid pin_hash"
           in
-          if Cstruct.len w = Nocrypto.Hash.digest_size dgst then Some w
+          if Cstruct.len w = Mirage_crypto.Hash.digest_size dgst then Some w
           else e "invalid pin_hash"
     in
     let cw =
@@ -200,7 +198,7 @@ let infox i_f =
 
 (** "challenge" command *)
 let challengex i_f =
-  let () = Nocrypto_entropy_unix.initialize () in
+  let () = Mirage_crypto_rng_unix.initialize () in
   try
     let t = of_file (cred_file i_f) in
     let _ = Printf.printf "%s\n" (Rfc6287.challenge t.s) in

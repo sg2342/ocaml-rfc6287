@@ -1,8 +1,3 @@
-(executable
+(test
   (name test_rfc6287)
-  (libraries rfc6287 oUnit nocrypto.unix))
-
-(alias
-  (name runtest)
-  (deps test_rfc6287.exe)
-  (action (run %{deps})))
+  (libraries rfc6287 oUnit mirage-crypto-rng.unix))

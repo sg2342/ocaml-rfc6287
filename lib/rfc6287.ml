@@ -122,7 +122,7 @@ let string_of_t {cf= _; di= _, s} = s
 let di_of_t {cf= _; di= di, _} = di
 
 let challenge {di= {q= qf, ql; _}, _; _} =
-  let b = Nocrypto.Rng.generate ql in
+  let b = Mirage_crypto_rng.generate ql in
   let s = Bytes.create ql in
   let rec aux i m a =
     if i >= ql then ()
@@ -137,7 +137,7 @@ let challenge {di= {q= qf, ql; _}, _; _} =
   | `H -> ( match Hex.of_cstruct b with `Hex s -> s )
 
 let crypto_function cf key buf =
-  let hmac = Nocrypto.Hash.mac cf.alg ~key buf in
+  let hmac = Mirage_crypto.Hash.mac cf.alg ~key buf in
   match cf.trunc with
   | None -> hmac
   | Some x ->
@@ -161,7 +161,6 @@ let crypto_function cf key buf =
 
 let format_data_input ?time (di, ss) c q p s t =
   let open Cstruct in
-  let open Nocrypto in
   let cs_64 i =
     let cs = create 8 in
     BE.set_uint64 cs 0 i ; cs
@@ -180,13 +179,13 @@ let format_data_input ?time (di, ss) c q p s t =
   let fq =
     let hex2bin q =
       let x = match String.length q mod 2 with 1 -> q ^ "0" | _ -> q in
-      try Numeric.Z.to_cstruct_be (Z.of_string_base 16 x)
+      try Mirage_crypto_pk.Z_extra.to_cstruct_be (Z.of_string_base 16 x)
       with Invalid_argument _ -> failwith "invalid Q"
     in
     let dec2bin q =
       let z = Z.of_string q in
       let s0 =
-        match Hex.of_cstruct (Numeric.Z.to_cstruct_be z) with
+        match Hex.of_cstruct (Mirage_crypto_pk.Z_extra.to_cstruct_be z) with
         | `Hex "" -> "000"
         | `Hex h -> h
       in
@@ -212,9 +211,9 @@ let format_data_input ?time (di, ss) c q p s t =
   let fp =
     match (di.p, p) with
     | None, None -> create 0
-    | Some dgst, Some (`Digest y) when Hash.digest_size dgst = len y -> y
+    | Some dgst, Some (`Digest y) when Mirage_crypto.Hash.digest_size dgst = len y -> y
     | Some _, Some (`Digest _) -> failwith "P length conflicts suite"
-    | Some dgst, Some (`String s) -> Hash.digest dgst (Cstruct.of_string s)
+    | Some dgst, Some (`String s) -> Mirage_crypto.Hash.digest dgst (Cstruct.of_string s)
     | None, Some _ -> failwith "no P in suite"
     | Some _, None -> failwith "suite requires P"
   in
