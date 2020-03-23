@@ -2,7 +2,6 @@ open OUnit2
 
 (* test vectors from "Appendix C. Test Vectors" of OCRA RFC *)
 
-open OUnit2
 open Rfc6287
 open Rresult
 
@@ -16,7 +15,7 @@ let key k =
               "36373839303132333435363738393031323334" in
   Hex.to_cstruct (`Hex s)
 
-let pinhash_d = `Digest (Nocrypto.Hash.SHA1.digest (Cstruct.of_string "1234"))
+let pinhash_d = `Digest (Mirage_crypto.Hash.SHA1.digest (Cstruct.of_string "1234"))
 let pinhash = `String "1234"
 
 let timestamp = `Int64 0x132d0b6L
@@ -327,7 +326,5 @@ let suite =
                "coverage" >::: coverage]
 
 let () =
-  Nocrypto_entropy_unix.initialize ()
-
-let () =
+  Mirage_crypto_rng_unix.initialize () ;
   run_test_tt_main suite
