@@ -14,24 +14,22 @@ incl. [RFC Errata ID: 3729](http://www.rfc-editor.org/errata_search.php?eid=3729
 ```
 $ dune clean
 $ BISECT_ENABLE=yes dune runtest
-$ bisect-ppx-report -I _build/default/ -text - _build/default/test/bisect*.out
+$ bisect-ppx-report html
+$ # point browser to `pwd`/_coverage/index.html
 ```
+
 
 ## Example usage
 
-enable and build ocra_tool example
-```
-$ mv dune dune_ignore_me; dune build examples
-```
 
 create credential files for client and server (server has a counter window of 5)
 ```
 $ S=OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1
-$ K=0x00112233445566778899aabbccddeeff00112233
+$ K=00112233445566778899aabbccddeeff00112233
 $ P=1234
 $ C=0
 $ ./_build/default/examples/ocra_tool.exe init -f /tmp/client.ocra -s $S -k $K -p $P -c $C
-$ ./_build/default/examples/ocra_tool.exe info
+$ ./_build/default/examples/ocra_tool.exe info -f /tmp/client.ocra
 suite:            OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1
 key:              0x00112233445566778899aabbccddeeff00112233
 counter:          0x0
