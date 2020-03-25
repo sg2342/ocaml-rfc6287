@@ -1,3 +1,8 @@
+## 1.0.4 (2020-03-25)
+
+* switch build system to dune
+* use mirage-crypto instead of nocrypto
+
 ## 1.0.3 (2018-03-15)
 
 * safe-string compatibility (without further allocations)
