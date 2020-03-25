@@ -21,6 +21,12 @@ $ # point browser to `pwd`/_coverage/index.html
 
 ## Example usage
 
+enable and build ocra-tool
+```
+$ dune clean
+$ mv examples/dune.ignore examples/dune
+$ dune build
+```
 
 create credential files for client and server (server has a counter window of 5)
 ```
