@@ -143,7 +143,7 @@ let crypto_function cf key buf =
   | Some x ->
       let v =
         let open Cstruct in
-        let o = get_uint8 hmac (len hmac - 1) land 0x0f in
+        let o = get_uint8 hmac (length hmac - 1) land 0x0f in
         BE.get_uint32 hmac o
       in
       let s0 =
@@ -204,14 +204,14 @@ let format_data_input ?time (di, ss) c q p s t =
       | `N -> dec2bin q
       | `H -> hex2bin q
     in
-    blit y 0 qbuf 0 (len y) ;
+    blit y 0 qbuf 0 (length y) ;
     qbuf
   in
   (* P, optional *)
   let fp =
     match (di.p, p) with
     | None, None -> create 0
-    | Some dgst, Some (`Digest y) when Mirage_crypto.Hash.digest_size dgst = len y -> y
+    | Some dgst, Some (`Digest y) when Mirage_crypto.Hash.digest_size dgst = length y -> y
     | Some _, Some (`Digest _) -> failwith "P length conflicts suite"
     | Some dgst, Some (`String s) -> Mirage_crypto.Hash.digest dgst (Cstruct.of_string s)
     | None, Some _ -> failwith "no P in suite"
@@ -221,7 +221,7 @@ let format_data_input ?time (di, ss) c q p s t =
   let fs =
     match (di.s, s) with
     | None, None -> create 0
-    | Some n, Some y when len y = n -> y
+    | Some n, Some y when length y = n -> y
     | Some _, Some _ -> failwith "S length conflicts suite"
     | None, Some _ -> failwith "no S in suite"
     | Some _, None -> failwith "suite requires S"
@@ -240,12 +240,12 @@ let format_data_input ?time (di, ss) c q p s t =
     | None, Some _, _ -> failwith "no T in suite"
     | Some _, None, _ -> failwith "suite requires T"
   in
-  let c_off = match c with None -> None | Some _ -> Some (len fss) in
+  let c_off = match c with None -> None | Some _ -> Some (length fss) in
   let t_off =
     match t with
     | None -> None
     | Some _ ->
-        Some (List.fold_left (fun a y -> a + len y) 0 [fss; fc; fq; fp; fs])
+        Some (List.fold_left (fun a y -> a + length y) 0 [fss; fc; fq; fp; fs])
   in
   (Cstruct.concat [fss; fc; fq; fp; fs; ft], (c_off, t_off))
 

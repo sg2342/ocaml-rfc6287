@@ -23,8 +23,8 @@ depends: [
   "dune" {>= "1.1"}
   "mirage-crypto"
   "mirage-crypto-pk"
-  "mirage-crypto-rng"
-  "cstruct" {>= "3.2.0"}
+  "mirage-crypto-rng" {>= "0.11.0"}
+  "cstruct" {>= "6.0.0"}
   "astring"
   "hex"
   "rresult"
