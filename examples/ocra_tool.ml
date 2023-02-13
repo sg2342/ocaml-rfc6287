@@ -198,7 +198,7 @@ let infox i_f =
 
 (** "challenge" command *)
 let challengex i_f =
-  let () = Mirage_crypto_rng_unix.initialize () in
+  let () = Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna) in
   try
     let t = of_file (cred_file i_f) in
     let _ = Printf.printf "%s\n" (Rfc6287.challenge t.s) in
