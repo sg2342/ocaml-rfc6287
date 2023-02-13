@@ -150,7 +150,7 @@ let initx i_f i_s i_k i_c i_p i_ph i_cw i_tw =
             try Cstruct.of_hex (strip_0x x) with Invalid_argument _ ->
               e "invalid pin_hash"
           in
-          if Cstruct.len w = Mirage_crypto.Hash.digest_size dgst then Some w
+          if Cstruct.length w = Mirage_crypto.Hash.digest_size dgst then Some w
           else e "invalid pin_hash"
     in
     let cw =
