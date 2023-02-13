@@ -339,8 +339,10 @@ let init_cmd =
          options to credential file ..." ]
     @ help_secs
   in
-  ( Term.(ret (pure initx $ i_f $ i_s $ i_k $ i_c $ i_p $ i_ph $ i_cw $ i_tw))
-  , Term.info "init" ~sdocs:copts_sect ~doc ~man )
+  let term = Term.(ret (const initx $ i_f $ i_s $ i_k $ i_c $ i_p $ i_ph $ i_cw $ i_tw))
+  and info = Cmd.info "init" ~sdocs:copts_sect ~doc ~man
+  in
+  Cmd.v info term
 
 let info_cmd =
   let doc = "Show content of OCRA credential file." in
@@ -351,7 +353,10 @@ let info_cmd =
          options in credential file ..." ]
     @ help_secs
   in
-  (Term.(ret (pure infox $ i_f)), Term.info "info" ~doc ~sdocs:copts_sect ~man)
+  let term = Term.(ret (const infox $ i_f))
+  and info = Cmd.info "info" ~doc ~sdocs:copts_sect ~man
+  in
+  Cmd.v info term
 
 let challenge_cmd =
   let doc = "Generate OCRA challenge" in
@@ -362,8 +367,10 @@ let challenge_cmd =
          the credential file ..." ]
     @ help_secs
   in
-  ( Term.(ret (pure challengex $ i_f))
-  , Term.info "challenge" ~doc ~sdocs:copts_sect ~man )
+  let term = Term.(ret (const challengex $ i_f))
+  and info = Cmd.info "challenge" ~doc ~sdocs:copts_sect ~man
+  in
+  Cmd.v info term
 
 let verify_cmd =
   let i_q =
@@ -383,8 +390,10 @@ let verify_cmd =
          credential file if the OCRA suite specifies C." ]
     @ help_secs
   in
-  ( Term.(ret (pure verifyx $ i_f $ i_q $ i_a))
-  , Term.info "verify" ~doc ~sdocs:copts_sect ~man )
+  let term = Term.(ret (const verifyx $ i_f $ i_q $ i_a))
+  and info = Cmd.info "verify" ~doc ~sdocs:copts_sect ~man
+  in
+  Cmd.v info term
 
 let response_cmd =
   let i_q =
@@ -399,21 +408,22 @@ let response_cmd =
          incremented." ]
     @ help_secs
   in
-  ( Term.(ret (pure responsex $ i_f $ i_q))
-  , Term.info "response" ~doc ~sdocs:copts_sect ~man )
+  let term = Term.(ret (const responsex $ i_f $ i_q))
+  and info = Cmd.info "response" ~doc ~sdocs:copts_sect ~man
+  in
+  Cmd.v info term
 
-let default_cmd =
+let help_cmd =
+  Term.(ret (const (fun _ -> `Help (`Pager, None)) $ i_f))
+
+let cmds = [init_cmd; info_cmd; challenge_cmd; verify_cmd; response_cmd]
+
+let () =
   let doc =
     "create and view OCRA credential files, generate challenges,\n             \
      calculate and verify responses"
   in
   let man = help_secs in
-  ( Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ i_f))
-  , Term.info "ocra_tool" ~sdocs:copts_sect ~doc ~man )
-
-let cmds = [init_cmd; info_cmd; challenge_cmd; verify_cmd; response_cmd]
-
-let () =
-  match Term.eval_choice ~catch:false default_cmd cmds with
-  | `Error _ -> exit 1
-  | _ -> exit 0
+  let info = Cmd.info "ocra_tool" ~sdocs:copts_sect ~doc ~man in
+  let group = Cmd.group ~default:help_cmd info cmds in
+  exit (Cmd.eval group)
